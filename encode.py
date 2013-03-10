@@ -82,11 +82,13 @@ def select_streams(info):
 		if len(l_resol) == 1: l_resol = ''
 		streams[l_id] = {
 			'type'  : l_type,
-			'codec' : l_codec
+			'codec' : l_codec,
+			'bit_rate' : l_bit_rate
 		}
 		print 'Stream:',l_id, \
 				('('+l_lang+')' if l_lang!='' else '') + \
 				(', [D]' if l_def else '') + \
+				(', '+l_bit_rate if l_bit_rate else '') + \
 				(', '+l_type.capitalize()+': '+l_codec) + \
 				(', ch '+l_channel if l_channel else '') + \
 				(', '+l_resol if l_resol else '') + \
@@ -101,6 +103,9 @@ def select_streams(info):
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
 			param_encode.append('aac')
+			if len(streams[indx]['bit_rate']) > 0:
+				param_encode.append('-b:'+str(n))
+				param_encode.append(streams[indx]['bit_rate'])
 			n += 1
 			continue
 		if streams[indx]['type'] == 'video' and streams[indx]['codec'] != 'h264':
