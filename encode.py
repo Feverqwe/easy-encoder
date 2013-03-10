@@ -98,7 +98,7 @@ def select_streams(info):
 	for indx in stream_arr:
 		param_map.append('-map')
 		param_map.append('0:'+indx)
-		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'acc':
+		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
 			param_encode.append('aac')
 			n += 1
