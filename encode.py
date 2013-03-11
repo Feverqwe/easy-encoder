@@ -7,6 +7,8 @@ import json
 #sound_num = raw_input('Hi! ')
 #print sound_num
 _path = os.path.dirname(os.path.realpath(__file__))
+_out = '/Volumes/320/'
+
 
 input_files = sys.argv[1:]
 if len(input_files) == 0:
@@ -61,7 +63,7 @@ def get_info(s):
 def select_streams(info):
 	if not 'streams' in info:
 		print('Streams not found!')
-		return '';
+		return ['-c','copy','-c:v','h264','-c:a','aac'];
 	streams = {}
 	for stream in info['streams']:
 		def g(i,e=''):
@@ -93,7 +95,10 @@ def select_streams(info):
 				(', ch '+l_channel if l_channel else '') + \
 				(', '+l_resol if l_resol else '') + \
 				(', '+l_title if l_title else '')
-	stream_arr = raw_input('Select stream! ').split(' ')
+
+	stream_arr = raw_input('Select stream! ')
+
+	stream_arr = stream_arr.split(' ')
 	param_map = []
 	param_encode = []
 	n = 0
@@ -103,6 +108,10 @@ def select_streams(info):
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
 			param_encode.append('aac')
+
+			#param_encode.append('-q:'+str(n))
+			#param_encode.append('1')
+			
 			if len(streams[indx]['bit_rate']) > 0:
 				param_encode.append('-b:'+str(n))
 				param_encode.append(streams[indx]['bit_rate'])
@@ -111,9 +120,13 @@ def select_streams(info):
 		if streams[indx]['type'] == 'video' and streams[indx]['codec'] != 'h264':
 			param_encode.append('-c:'+str(n))
 			param_encode.append('h264')
+
+			#param_encode.append('-q:'+str(n))
+			#param_encode.append('1')
+
 			n += 1
 			continue
-		if streams[indx]['type'] == 'subtitle':
+		if streams[indx]['type'] == 'subtitle' and streams[indx]['codec'] == 'subrip':
 			param_encode.append('-c:'+str(n))
 			param_encode.append('mov_text')
 			n += 1
@@ -127,7 +140,7 @@ def select_streams(info):
 
 for file in input_files:
 	f_name = os.path.splitext(os.path.basename(file))[0]
-	f_name = os.path.join(_path,f_name)
+	f_name = os.path.join(_out,f_name)
 	info = get_info(file)
 	params = select_streams(info)
 	ffmpeg(file,f_name,params)
