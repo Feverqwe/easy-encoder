@@ -5,7 +5,10 @@ import os
 import subprocess
 import json
 import platform
+import ConfigParser
+import codecs
 
+_save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
 _is_win = 0
 _is_lin = 0
@@ -15,36 +18,44 @@ if platform.system() == 'Windows':
 	sys.setdefaultencoding("cp1251")
 if platform.system() == 'Linux':
 	_is_lin = 1
-	
-_out = 'Z:\\'
 
+config = ConfigParser.ConfigParser()
+config_name = 'config.cfg'
+if not os.path.exists(os.path.join(_path,config_name)):
+	print "Config file ("+config_name+") not found!"
+	sys.exit(0)
+else:
+	config.readfp(codecs.open(os.path.join(_path,config_name), 'r', 'utf-8'))
+
+_out = config.get('Main', 'output')
+	
 input_files = sys.argv[1:]
 if len(input_files) == 0:
-	input_files = []
-	input_files.append('/Volumes/320/Dumb & Dumber.1994.BDRip-AVC.Unrated.mkv')
+	print "Files for converting not found!"
+	sys.exit(0)
 
 def ffmpeg(s,d,params):
-        print 'FFmpeg: open',s
-        out_ext = '.m4v'
-        d_tmp = d+'.converting'+out_ext
-        app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
-        app_path = os.path.join(_path,'bin',app)
-        atr = [ app_path,
-                    '-y',
-                    '-i',s,
-                    '-threads','0',
-                    '-preset','slow',
-                    '-strict','-2'
-        ]
-        atr += params
-        atr.append(d_tmp)
-        subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
-        if os.path.getsize(d_tmp) == 0:
-            os.remove(d_tmp)
-            return 0
-        else:
-            os.rename(d_tmp,d+out_ext)
-            return 1
+		print 'FFmpeg: open',s
+		out_ext = '.m4v'
+		d_tmp = d+'.converting'+out_ext
+		app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+		app_path = os.path.join(_path,'bin',app)
+		atr = [ app_path,
+					'-y',
+					'-i',s,
+					'-threads','0',
+					'-preset','slow',
+					'-strict','-2'
+		]
+		atr += params
+		atr.append(d_tmp)
+		subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
+		if os.path.getsize(d_tmp) == 0:
+			os.remove(d_tmp)
+			return 0
+		else:
+			os.rename(d_tmp,d+out_ext)
+			return 1
 
 def get_info(s):
 	print 'FFprobe: open',s
@@ -74,10 +85,14 @@ def get_info(s):
 	return json.loads(json_out)
 
 def select_streams(info):
+	global _save_param
 	if not 'streams' in info:
 		print('Streams not found!')
 		return ['-c','copy','-c:v','h264','-c:a','aac'];
 	streams = {}
+	v_count = 0
+	a_count = 0
+	o_count = 0
 	for stream in info['streams']:
 		def g(i,e=''):
 			return str(stream[i]) if i in stream else e
@@ -89,6 +104,12 @@ def select_streams(info):
 			l_title = stream['tags']['title'] if 'title' in stream['tags'] else '[No title]'
 		l_type = g('codec_type')
 		l_codec = g('codec_name')
+		if l_type == 'video':
+			v_count += 1
+		elif l_type == 'audio':
+			a_count += 1
+		else:
+			o_count += 1
 		l_sample_rate = g('sample_rate')
 		l_bit_rate = g('bit_rate')
 		l_channel = g('channels')
@@ -108,9 +129,16 @@ def select_streams(info):
 				(', ch '+l_channel if l_channel else '') + \
 				(', '+l_resol if l_resol else '') + \
 				(', '+l_title if l_title else '')
-
-	stream_arr = raw_input('Select stream! ')
-
+	save_query = ''
+	if v_count == 1 and a_count == 1 and o_count == 0:
+		stream_arr = '0 1'
+	elif len(_save_param) == 0:				
+		stream_arr = raw_input('Enter stream numers (spase for split): ')
+		save_query = raw_input('Use for all? Enter (y/n): ')
+	else:
+		stream_arr = _save_param
+	if len(save_query.lower()) > 0 and save_query.lower()[0] == 'y':
+		_save_param = stream_arr
 	stream_arr = stream_arr.split(' ')
 	param_map = []
 	param_encode = []
@@ -152,8 +180,16 @@ def select_streams(info):
 	return param_map + param_encode
 
 for file in input_files:
+	if len(_out) == 0:
+		_out = os.path.dirname(file)
 	f_name = os.path.splitext(os.path.basename(file))[0]
 	f_name = os.path.join(_out,f_name)
 	info = get_info(file)
 	params = select_streams(info)
 	ffmpeg(file,f_name,params)
+	print "Dune!",f_name
+
+print "All dune!"
+for file in input_files:
+	print "From folder:", os.path.dirname(file)
+	print "File:", os.path.basename(file)
