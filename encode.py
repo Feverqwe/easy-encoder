@@ -1,14 +1,22 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
-import os
 import sys
+import os
 import subprocess
 import json
-#sound_num = raw_input('Hi! ')
-#print sound_num
-_path = os.path.dirname(os.path.realpath(__file__))
-_out = '/Volumes/320/'
+import platform
 
+_path = os.path.dirname(os.path.realpath(__file__))
+_is_win = 0
+_is_lin = 0
+if platform.system() == 'Windows':
+	_is_win = 1
+	reload(sys)
+	sys.setdefaultencoding("cp1251")
+if platform.system() == 'Linux':
+	_is_lin = 1
+	
+_out = 'Z:\\'
 
 input_files = sys.argv[1:]
 if len(input_files) == 0:
@@ -19,7 +27,7 @@ def ffmpeg(s,d,params):
         print 'FFmpeg: open',s
         out_ext = '.m4v'
         d_tmp = d+'.converting'+out_ext
-        app = 'ffmpeg'
+        app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
         app_path = os.path.join(_path,'bin',app)
         atr = [ app_path,
                     '-y',
@@ -40,23 +48,28 @@ def ffmpeg(s,d,params):
 
 def get_info(s):
 	print 'FFprobe: open',s
-	app = 'ffprobe'
+	app = 'ffprobe' + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
-				'-i','"'+s.replace("`","\`").replace("\"","\\\"")+'"',
+				'-i','"'+s.replace("`","\`")+'"',
 				'-print_format','json','-show_streams', '-show_format'
 	]
 	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	json_out = ''
 	writeing = 0
 	while True:
-		buff = process.stdout.readline()
+		buff = process.stdout.readline().replace('\r','').replace('\n','')
 		if buff == '' and process.poll() != None: 
 			break
-		if buff[0] == '{':
+		if writeing == 0 and len(buff) > 0 and buff[0] == '{':
+			writeing = 1
+		if writeing == 0 and len(buff) > 0 and buff.strip() == '"streams": [':
+			buff = "{" + buff
 			writeing = 1
 		if writeing:
 			json_out += buff
+		if writeing and len(buff) > 0 and buff[0] == '}':
+			writeing = 0
 	process.wait()
 	return json.loads(json_out)
 
