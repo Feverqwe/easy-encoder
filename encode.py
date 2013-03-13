@@ -9,8 +9,15 @@ import ConfigParser
 import codecs
 import re
 
-_codec = ''
-_codec_param = ''
+_acodec = ''
+_acodec_param = ''
+_vcodec = ''
+_app_info = 'ffprobe' #.exe _linux
+_app_encode = 'ffmpeg' #.exe _linux
+
+#_app_encode = 'avconv'
+
+_out_ext = '.m4v'
 
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
@@ -42,71 +49,82 @@ if len(input_files) == 0:
 	sys.exit(0)
 
 def get_aac_codec():
-	global _codec
-	global _codec_param
-	print 'FFmpeg: get acc codec'
-	app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+	global _acodec
+	global _acodec_param
+	global _vcodec
+	print 'FFmpeg: get codecs'
+	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
 				'-codecs'
 	]
 	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-	prio  = 0
-	codec = ''
+	aprio  = 0
+	vprio = 0
+	acodec = ''
+	vcodec = ''
 	param = []
 	while True:
 		buff = process.stdout.readline().replace('\r','').replace('\n','')
 		if buff == '' and process.poll() != None: 
 			break
 		if re.match(r'.*libfdk_aac.*',buff):
-			codec = 'libfdk_aac'
+			acodec = 'libfdk_aac'
 			param = []
-			prio  = 4
+			aprio  = 4
 		if re.match(r'.*libfaac.*',buff):
-			if prio > 3: continue
-			codec = 'libfaac'
+			if aprio > 3: continue
+			acodec = 'libfaac'
 			param = []
-			prio  = 3
+			aprio  = 3
 		if re.match(r'.*aac.*AAC.*',buff):
-			if prio > 2: continue
-			codec = 'aac'
+			if aprio > 2: continue
+			acodec = 'aac'
 			param = ['-strict','-2']
-			prio  = 2
+			aprio  = 2
 		if re.match(r'.*libvo_aacenc.*',buff):
-			if prio != 0: continue
-			codec = 'libvo_aacenc'
+			if aprio != 0: continue
+			acodec = 'libvo_aacenc'
 			param = []
-			prio  = 1
+			aprio  = 1
+		if re.match(r'.*h264.*',buff):
+			if vprio != 0: continue
+			vcodec = 'h264'
+			vprio  = 1
+		if re.match(r'.*libx264.*',buff):
+			vcodec = 'libx264'
+			vprio  = 2
 	process.wait()
-	_codec = codec
-	_codec_param = param
+	_acodec = acodec
+	_acodec_param = param
+	_vcodec = vcodec
 
 def ffmpeg(s,d,params):
 	print 'FFmpeg: open',s
-	out_ext = '.m4v'
-	d_tmp = d+'.converting'+out_ext
-	app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+	d_tmp = d+'.converting'+_out_ext
+	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
 				'-y',
 				'-i',s,
-				'-threads','0',
+				'-threads','auto',
 				'-preset','slow',
 	]
-	atr += _codec_param
+	atr += _acodec_param
 	atr += params
 	atr.append(d_tmp)
+	print ' '.join(atr)
 	subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
 	if os.path.getsize(d_tmp) == 0:
 		os.remove(d_tmp)
 		return 0
 	else:
-		os.rename(d_tmp,d+out_ext)
+		os.rename(d_tmp,d+_out_ext)
 		return 1
 
 def get_info(s):
 	print 'FFprobe: open',s
-	app = 'ffprobe' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+	app = _app_info + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
 				'-i','"'+s.replace("`","\`")+'"',
@@ -195,7 +213,7 @@ def select_streams(info):
 		param_map.append('0:'+indx)
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
-			param_encode.append(_codec)
+			param_encode.append(_acodec)
 
 			#param_encode.append('-q:'+str(n))
 			#param_encode.append('1')
@@ -207,7 +225,7 @@ def select_streams(info):
 			continue
 		if streams[indx]['type'] == 'video' and streams[indx]['codec'] != 'h264':
 			param_encode.append('-c:'+str(n))
-			param_encode.append('h264')
+			param_encode.append(_vcodec)
 
 			#param_encode.append('-q:'+str(n))
 			#param_encode.append('1')
