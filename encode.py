@@ -7,6 +7,10 @@ import json
 import platform
 import ConfigParser
 import codecs
+import re
+
+_codec = ''
+_codec_param = ''
 
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
@@ -28,34 +32,77 @@ else:
 	config.readfp(codecs.open(os.path.join(_path,config_name), 'r', 'utf-8'))
 
 _out = config.get('Main', 'output')
-	
+_auto_out = 0
+if len(_out) == 0:
+	_auto_out = 1
+
 input_files = sys.argv[1:]
 if len(input_files) == 0:
 	print "Files for converting not found!"
 	sys.exit(0)
 
+def get_aac_codec():
+	global _codec
+	global _codec_param
+	print 'FFmpeg: get acc codec'
+	app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+	app_path = os.path.join(_path,'bin',app)
+	atr = [ app_path,
+				'-codecs'
+	]
+	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	prio  = 0
+	codec = ''
+	param = []
+	while True:
+		buff = process.stdout.readline().replace('\r','').replace('\n','')
+		if buff == '' and process.poll() != None: 
+			break
+		if re.match(r'.*libfdk_aac.*',buff):
+			codec = 'libfdk_aac'
+			param = []
+			prio  = 4
+		if re.match(r'.*libfaac.*',buff):
+			if prio > 3: continue
+			codec = 'libfaac'
+			param = []
+			prio  = 3
+		if re.match(r'.*aac.*AAC.*',buff):
+			if prio > 2: continue
+			codec = 'aac'
+			param = ['-strict','-2']
+			prio  = 2
+		if re.match(r'.*libvo_aacenc.*',buff):
+			if prio != 0: continue
+			codec = 'libvo_aacenc'
+			param = []
+			prio  = 1
+	process.wait()
+	_codec = codec
+	_codec_param = param
+
 def ffmpeg(s,d,params):
-		print 'FFmpeg: open',s
-		out_ext = '.m4v'
-		d_tmp = d+'.converting'+out_ext
-		app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
-		app_path = os.path.join(_path,'bin',app)
-		atr = [ app_path,
-					'-y',
-					'-i',s,
-					'-threads','0',
-					'-preset','slow',
-					'-strict','-2'
-		]
-		atr += params
-		atr.append(d_tmp)
-		subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
-		if os.path.getsize(d_tmp) == 0:
-			os.remove(d_tmp)
-			return 0
-		else:
-			os.rename(d_tmp,d+out_ext)
-			return 1
+	print 'FFmpeg: open',s
+	out_ext = '.m4v'
+	d_tmp = d+'.converting'+out_ext
+	app = 'ffmpeg' + ('.exe' if _is_win else '_linux' if _is_lin else '')
+	app_path = os.path.join(_path,'bin',app)
+	atr = [ app_path,
+				'-y',
+				'-i',s,
+				'-threads','0',
+				'-preset','slow',
+	]
+	atr += _codec_param
+	atr += params
+	atr.append(d_tmp)
+	subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
+	if os.path.getsize(d_tmp) == 0:
+		os.remove(d_tmp)
+		return 0
+	else:
+		os.rename(d_tmp,d+out_ext)
+		return 1
 
 def get_info(s):
 	print 'FFprobe: open',s
@@ -148,7 +195,7 @@ def select_streams(info):
 		param_map.append('0:'+indx)
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
-			param_encode.append('aac')
+			param_encode.append(_codec)
 
 			#param_encode.append('-q:'+str(n))
 			#param_encode.append('1')
@@ -179,8 +226,10 @@ def select_streams(info):
 
 	return param_map + param_encode
 
+get_aac_codec()
+
 for file in input_files:
-	if len(_out) == 0:
+	if _auto_out:
 		_out = os.path.dirname(file)
 	f_name = os.path.splitext(os.path.basename(file))[0]
 	f_name = os.path.join(_out,f_name)
