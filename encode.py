@@ -147,7 +147,11 @@ def get_info(s):
 		if writeing and len(buff) > 0 and buff[0] == '}':
 			writeing = 0
 	process.wait()
-	return json.loads(json_out)
+	try:
+		out = json.loads(json_out)
+	except Exception: 
+		out = json.loads(json_out.decode("cp1251"))
+	return out
 
 def select_streams(info):
 	global _save_param
