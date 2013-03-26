@@ -162,6 +162,7 @@ def select_streams(info):
 	v_count = 0
 	a_count = 0
 	o_count = 0
+	all_arr = []
 	for stream in info['streams']:
 		def g(i,e=''):
 			return str(stream[i]) if i in stream else e
@@ -190,6 +191,7 @@ def select_streams(info):
 			'codec' : l_codec,
 			'bit_rate' : l_bit_rate
 		}
+		all_arr.append(l_id)
 		print 'Stream:',l_id, \
 				('('+l_lang+')' if l_lang!='' else '') + \
 				(', [D]' if l_def else '') + \
@@ -202,13 +204,16 @@ def select_streams(info):
 	if v_count == 1 and a_count == 1 and o_count == 0:
 		stream_arr = '0 1'
 	elif len(_save_param) == 0:				
-		stream_arr = raw_input('Enter stream numers (spase for split): ')
+		stream_arr = raw_input('Enter stream numers (spase for split, -1 for all): ')
 		save_query = raw_input('Use for all? Enter (y/n): ')
 	else:
 		stream_arr = _save_param
 	if len(save_query.lower()) > 0 and save_query.lower()[0] == 'y':
 		_save_param = stream_arr
-	stream_arr = stream_arr.split(' ')
+	if stream_arr == "-1":
+		stream_arr = all_arr
+	else:
+		stream_arr = stream_arr.split(' ')
 	param_map = []
 	param_encode = []
 	n = 0
