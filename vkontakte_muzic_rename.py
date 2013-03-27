@@ -36,7 +36,7 @@ def ffmpeg(s,d,track):
 
 for file in input_files:
 	f_name = os.path.splitext(os.path.basename(file))[0]
-	params = f_name.split(' - ',1)
+	params = f_name.split(' – ',1)
 	if len(params) > 1:
 		params = {'Name':params[0],'Artist':params[1]}
 	ffmpeg(file,os.path.join(_path,'mp3',f_name),params)
