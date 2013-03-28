@@ -12,9 +12,7 @@ import re
 _acodec = ''
 _acodec_param = ''
 _vcodec = ''
-_app_info = 'ffprobe' #.exe _linux
-#_app_encode = 'ffmpeg' #.exe _linux
-
+_app_info = 'avprobe' #.exe _linux
 _app_encode = 'avconv'
 
 _out_ext = '.m4v'
@@ -52,7 +50,7 @@ def get_aac_codec():
 	global _acodec
 	global _acodec_param
 	global _vcodec
-	print 'FFmpeg: get codecs'
+	print 'AVmpeg: get codecs'
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
@@ -100,7 +98,7 @@ def get_aac_codec():
 	_vcodec = vcodec
 
 def ffmpeg(s,d,params):
-	print 'FFmpeg: open',s
+	print 'AVmpeg: open',s
 	d_tmp = d+'.converting'+_out_ext
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
@@ -124,12 +122,12 @@ def ffmpeg(s,d,params):
 		return 1
 
 def get_info(s):
-	print 'FFprobe: open',s
+	print 'AVprobe: open',s
 	app = _app_info + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
-				'-i','"'+s.replace("`","\`")+'"',
-				'-print_format','json','-show_streams', '-show_format'
+				'"'+s.replace("`","\`")+'"',
+				'-of','json','-show_streams', '-show_format'
 	]
 	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	json_out = ''
