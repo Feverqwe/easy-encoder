@@ -169,8 +169,8 @@ def select_streams(info):
 		l_lang = ''
 		l_title = ''
 		if 'tags' in stream:
-			l_lang = stream.tags.language if 'language' in stream.tags else ''
-			l_title = stream.tags.title if 'title' in stream.tags else '[No title]'
+			l_lang = stream['tags']['language'] if 'language' in stream['tags'] else ''
+			l_title = stream['tags']['title'] if 'title' in stream['tags'] else '[No title]'
 		l_type = g('codec_type')
 		l_codec = g('codec_name')
 		if l_type == 'video':
@@ -183,7 +183,7 @@ def select_streams(info):
 		l_bit_rate = g('bit_rate')
 		l_channel = g('channels')
 		l_resol = g('width')+'x'+g('height')
-		l_def = stream.disposition.default if 'disposition' in stream and 'default' in stream.disposition else ''
+		l_def = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else ''
 		if len(l_resol) == 1: l_resol = ''
 		streams[l_id] = {
 			'type'  : l_type,
