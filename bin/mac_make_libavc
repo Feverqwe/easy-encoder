@@ -1,0 +1,34 @@
+#!/bin/sh
+export CC=clang
+DISK_ID=$(hdid -nomount ram://2097152) 
+newfs_hfs -v Ramdisk ${DISK_ID} 
+diskutil mount ${DISK_ID}
+MES=/Packages/
+TARGET="/Volumes/Ramdisk/sw"
+CMPL="/Volumes/Ramdisk/compile"
+mkdir ${TARGET}
+mkdir ${CMPL}
+export PATH=${TARGET}/bin:$PATH
+mkdir ${MES}
+
+cd ${MES}
+open .
+echo "Download yasm-1.2.0.tar.gz in $MES"
+read -s -n 1
+
+cd ${CMPL}
+tar xzpf ${MES}/yasm-1.2.0.tar.gz
+cd yasm-1.2.0
+./configure --prefix=${TARGET} && make -j 4 && make install
+
+cd ${CMPL} 
+git clone git://git.videolan.org/x264.git
+cd x264
+./configure --prefix=${TARGET} --disable-shared --enable-static && make -j 4 && make install && make install-lib-static
+
+cd ${CMPL}
+git clone git://git.libav.org/libav.git libav
+cd libav
+export LDFLAGS="-L${TARGET}/lib" 
+export CFLAGS="-I${TARGET}/include" 
+./configure --prefix=${TARGET} --enable-pthreads --disable-shared --enable-static --enable-gpl --enable-libx264 --enable-libmp3lame --enable-nonfree --enable-encoder=libfaac && make clean && make -j 4 && make install

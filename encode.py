@@ -13,9 +13,9 @@ _acodec = ''
 _acodec_param = ''
 _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
-_app_encode = 'ffmpeg' #.exe _linux
+#_app_encode = 'ffmpeg' #.exe _linux
 
-#_app_encode = 'avconv'
+_app_encode = 'avconv'
 
 _out_ext = '.m4v'
 
@@ -68,30 +68,30 @@ def get_aac_codec():
 		buff = process.stdout.readline().replace('\r','').replace('\n','')
 		if buff == '' and process.poll() != None: 
 			break
-		if re.match(r'.*libfdk_aac.*',buff):
+		if re.match(r'.*libfdk_aac  .*',buff):
 			acodec = 'libfdk_aac'
 			param = []
 			aprio  = 4
-		if re.match(r'.*libfaac.*',buff):
+		if re.match(r'.*libfaac  .*',buff):
 			if aprio > 3: continue
 			acodec = 'libfaac'
 			param = []
 			aprio  = 3
-		if re.match(r'.*aac.*AAC.*',buff):
+		if re.match(r'.*aac  .*AAC.*',buff):
 			if aprio > 2: continue
 			acodec = 'aac'
 			param = ['-strict','-2']
 			aprio  = 2
-		if re.match(r'.*libvo_aacenc.*',buff):
+		if re.match(r'.*libvo_aacenc  .*',buff):
 			if aprio != 0: continue
 			acodec = 'libvo_aacenc'
 			param = []
 			aprio  = 1
-		if re.match(r'.*h264.*',buff):
+		if re.match(r'.*h264  .*',buff):
 			if vprio != 0: continue
 			vcodec = 'h264'
 			vprio  = 1
-		if re.match(r'.*libx264.*',buff):
+		if re.match(r'.*libx264  .*',buff):
 			vcodec = 'libx264'
 			vprio  = 2
 	process.wait()
@@ -107,6 +107,7 @@ def ffmpeg(s,d,params):
 	atr = [ app_path,
 				'-y',
 				'-i',s,
+				'-f','mp4',
 				'-threads','auto',
 				'-preset','slow',
 	]
