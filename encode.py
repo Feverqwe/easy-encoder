@@ -15,6 +15,9 @@ _vcodec = ''
 _app_info = 'avprobe' #.exe _linux
 _app_encode = 'avconv'
 
+#_app_info = 'ffprobe'
+#_app_encode = 'ffmpeg'
+
 _out_ext = '.m4v'
 
 _save_param = []
@@ -123,6 +126,8 @@ def ffmpeg(s,d,params):
 				'-f','mp4',
 				'-threads','auto',
 				'-preset','slow',
+				'-qmax','48',
+				'-qmin','2'
 	]
 	atr += _acodec_param
 	atr += params
