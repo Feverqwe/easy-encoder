@@ -283,11 +283,11 @@ for file in input_files:
 		_out = os.path.dirname(file)
 	f_name = os.path.splitext(os.path.basename(file))[0]
 	f_name = os.path.join(_out,f_name)
-	info = get_info(file)
-	params = select_streams(info)
 	if os.path.exists(f_name+_out_ext):
 		print "Exists!",f_name
 		continue
+	info = get_info(file)
+	params = select_streams(info)
 	ffmpeg(file,f_name,params)
 	print "Dune!",f_name
 
