@@ -239,6 +239,8 @@ def select_streams(info):
 	param_encode = []
 	n = 0
 	for indx in stream_arr:
+		if (streams[indx]['codec'] == 'unknown'):
+			continue
 		param_encode.append('-map')
 		param_encode.append('0:'+indx)
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
