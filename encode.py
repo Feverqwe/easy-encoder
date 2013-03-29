@@ -45,6 +45,21 @@ input_files = sys.argv[1:]
 if len(input_files) == 0:
 	print "Files for converting not found!"
 	sys.exit(0)
+if len(input_files) == 1:
+	folder = input_files[0]
+	if os.path.isdir(folder):
+		input_files = []
+		for file in os.listdir(folder):
+			full_path = os.path.realpath(os.path.join(folder,file))
+			if os.path.isdir(full_path):
+				continue
+			ex = fn.split('.')[-1]
+			if ex in ['avi','mkv','ts','wma','mp4']:
+				input_files.append(full_path)
+	print "Loaded files:",input_files
+if len(input_files) == 0:
+	print "Files for converting not found!"
+	sys.exit(0)
 
 def get_aac_codec():
 	global _acodec
