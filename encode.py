@@ -236,12 +236,11 @@ def select_streams(info):
 		stream_arr = all_arr
 	else:
 		stream_arr = stream_arr.split(' ')
-	param_map = []
 	param_encode = []
 	n = 0
 	for indx in stream_arr:
-		param_map.append('-map')
-		param_map.append('0:'+indx)
+		param_encode.append('-map')
+		param_encode.append('0:'+indx)
 		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_acodec)
@@ -273,7 +272,7 @@ def select_streams(info):
 		param_encode.append('copy')
 		n += 1
 
-	return param_map + param_encode
+	return param_encode
 
 get_aac_codec()
 
