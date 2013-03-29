@@ -56,7 +56,7 @@ if len(input_files) == 1:
 			ex = file.split('.')[-1]
 			if ex in ['avi','mkv','ts','wma','mp4']:
 				input_files.append(full_path)
-	print "Loaded files:",input_files
+	print "Loaded files:",'\n'.join(input_files)
 if len(input_files) == 0:
 	print "Files for converting not found!"
 	sys.exit(0)
