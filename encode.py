@@ -127,7 +127,7 @@ def ffmpeg(s,d,params):
 	atr += _acodec_param
 	atr += params
 	atr.append(d_tmp)
-	print ' '.join(atr)
+	print "Command line:",' '.join(atr)
 	subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
 	if os.path.getsize(d_tmp) == 0:
 		os.remove(d_tmp)
