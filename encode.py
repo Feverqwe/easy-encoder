@@ -149,7 +149,10 @@ def get_info(s):
 	try:
 		out = json.loads(json_out)
 	except Exception: 
-		out = json.loads(json_out.decode("cp1251"))
+		try:
+			out = json.loads(json_out.decode("cp1251"))
+		except Exception: 
+			out = json.loads(json_out.decode("utf-8","ignore"))
 	return out
 
 def select_streams(info):
