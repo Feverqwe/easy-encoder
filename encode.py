@@ -93,7 +93,7 @@ def get_aac_codec():
 			acodec = 'libfaac'
 			param = []
 			aprio  = 3
-		if re.match(r'.*aac  .*AAC.*',buff):
+		if re.match(r'.*aac  .*',buff):
 			if aprio > 2: continue
 			acodec = 'aac'
 			param = ['-strict','-2']
