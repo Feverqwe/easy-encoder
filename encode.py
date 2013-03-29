@@ -285,6 +285,9 @@ for file in input_files:
 	f_name = os.path.join(_out,f_name)
 	info = get_info(file)
 	params = select_streams(info)
+	if os.path.exists(f_name+_out_ext):
+		print "Exists!",f_name
+		continue
 	ffmpeg(file,f_name,params)
 	print "Dune!",f_name
 
