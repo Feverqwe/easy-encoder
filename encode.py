@@ -146,7 +146,7 @@ def get_info(s):
 	app = _app_info + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
-				'"'+s.replace("`","\`")+'"',
+				'"'+s.replace("$","\$").replace("`","\`")+'"',
 				'-of','json','-show_streams', '-show_format'
 	]
 	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
