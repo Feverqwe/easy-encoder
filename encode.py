@@ -12,11 +12,11 @@ import re
 _acodec = ''
 _acodec_param = ''
 _vcodec = ''
-_app_info = 'avprobe' #.exe _linux
-_app_encode = 'avconv'
+_app_info = 'ffprobe' #.exe _linux
+_app_encode = 'ffmpeg'
 
 #_app_info = 'ffprobe'
-#_app_encode = 'ffmpeg'
+#_app_encode = 'avconv'
 
 _out_ext = '.m4v'
 
@@ -68,7 +68,7 @@ def get_aac_codec():
 	global _acodec
 	global _acodec_param
 	global _vcodec
-	print 'AVmpeg: get codecs'
+	print '*mpeg: get codecs'
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
@@ -116,7 +116,7 @@ def get_aac_codec():
 	_vcodec = vcodec
 
 def ffmpeg(s,d,params):
-	print 'AVmpeg: open',s
+	print '*mpeg: open',s
 	d_tmp = d+'.converting'+_out_ext
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
@@ -142,7 +142,7 @@ def ffmpeg(s,d,params):
 		return 1
 
 def get_info(s):
-	print 'AVprobe: open',s
+	print '*probe: open',s
 	app = _app_info + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
