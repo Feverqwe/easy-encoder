@@ -15,8 +15,8 @@ _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-#_app_info = 'ffprobe'
-#_app_encode = 'avconv'
+_app_info = 'avprobe'
+_app_encode = 'avconv'
 
 _out_ext = '.m4v'
 
@@ -161,6 +161,8 @@ def get_info(s):
 		if writeing == 0 and len(buff) > 0 and buff.strip() == '"streams": [':
 			buff = "{" + buff
 			writeing = 1
+		if writeing == 1 and len(buff) > 15 and ( buff[0:15] == 'avprobe version' or buff[0:15] == 'ffprobe version' ):
+			writeing = 0
 		if writeing:
 			json_out += buff
 		if writeing and len(buff) > 0 and buff[0] == '}':
