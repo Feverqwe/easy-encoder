@@ -145,7 +145,7 @@ def ffmpeg(s,d,params):
 	atr = [ app_path,
 				'-y',
 				'-i',s,
-				'-threads','auto',
+				'-threads','4',
 				'-preset','slow',
 				'-qmax','48',
 				'-qmin','2'
