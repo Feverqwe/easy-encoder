@@ -15,10 +15,14 @@ _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
+_webm = 1
+
 _app_info = 'avprobe'
 _app_encode = 'avconv'
 
 _out_ext = '.m4v'
+if _webm:
+	_out_ext = '.webm'
 
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
@@ -85,6 +89,7 @@ def get_aac_codec():
 		if buff == '' and process.poll() != None: 
 			break
 		if re.match(r'.*libfdk_aac  .*',buff):
+			if aprio > 4: continue
 			acodec = 'libfdk_aac'
 			param = []
 			aprio  = 4
@@ -93,7 +98,7 @@ def get_aac_codec():
 			acodec = 'libfaac'
 			param = []
 			aprio  = 3
-		if re.match(r'.*aac  .*',buff):
+		if re.match(r'.{7}aac  .*',buff):
 			if aprio > 2: continue
 			acodec = 'aac'
 			param = ['-strict','-2']
@@ -103,13 +108,30 @@ def get_aac_codec():
 			acodec = 'libvo_aacenc'
 			param = []
 			aprio  = 1
-		if re.match(r'.*h264  .*',buff):
+		if re.match(r'.{7}h264  .*',buff):
 			if vprio != 0: continue
 			vcodec = 'h264'
 			vprio  = 1
 		if re.match(r'.*libx264  .*',buff):
+			if aprio > 2: continue
 			vcodec = 'libx264'
 			vprio  = 2
+		if _webm:
+			if re.match(r'.{7}vp8 .*',buff):
+				print "Fond vp8!"
+				if aprio > 3: continue
+				vcodec = 'vp8'
+				vprio  = 3
+			if re.match(r'.{7}vorbis  .*',buff):
+				if aprio > 5: continue
+				acodec = 'vorbis'
+				aprio  = 5
+				param = ['-strict','experimental']
+			if 0:
+				if re.match(r'.{7}opus  .*',buff):
+					if aprio > 6: continue
+					acodec = 'opus'
+					aprio  = 6
 	process.wait()
 	_acodec = acodec
 	_acodec_param = param
@@ -123,12 +145,16 @@ def ffmpeg(s,d,params):
 	atr = [ app_path,
 				'-y',
 				'-i',s,
-				'-f','mp4',
 				'-threads','auto',
 				'-preset','slow',
 				'-qmax','48',
 				'-qmin','2'
 	]
+	atr.append('-f')
+	if _webm:
+		atr.append('webm')
+	else:
+		atr.append('mp4')
 	atr += _acodec_param
 	atr += params
 	atr.append(d_tmp)
@@ -181,7 +207,10 @@ def select_streams(info):
 	global _save_param
 	if not 'streams' in info:
 		print('Streams not found!')
-		return ['-c','copy','-c:v','h264','-c:a','aac'];
+		if _webm:
+			return ['-c','copy','-c:v','vp8','-c:a','opus'];
+		else:
+			return ['-c','copy','-c:v','h264','-c:a','aac'];
 	streams = {}
 	v_count = 0
 	a_count = 0
@@ -245,7 +274,7 @@ def select_streams(info):
 			continue
 		param_encode.append('-map')
 		param_encode.append('0:'+indx)
-		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
+		if streams[indx]['type'] == 'audio' and ( ( not _webm and streams[indx]['codec'] != 'aac' ) or ( _webm and streams[indx]['codec'] != 'opus' ) ):
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_acodec)
 
@@ -257,7 +286,7 @@ def select_streams(info):
 				param_encode.append(streams[indx]['bit_rate'])
 			n += 1
 			continue
-		if streams[indx]['type'] == 'video' and streams[indx]['codec'] != 'h264':
+		if streams[indx]['type'] == 'video' and ( ( not _webm and streams[indx]['codec'] != 'h264' ) or ( _webm and streams[indx]['codec'] != 'libvpx' ) ):
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_vcodec)
 
