@@ -15,7 +15,7 @@ _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-_webm = 1
+_webm = 0
 
 _app_info = 'avprobe'
 _app_encode = 'avconv'
