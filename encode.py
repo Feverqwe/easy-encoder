@@ -88,47 +88,53 @@ def get_aac_codec():
 		buff = process.stdout.readline().replace('\r','').replace('\n','')
 		if buff == '' and process.poll() != None: 
 			break
-		if re.match(r'.*libfdk_aac  .*',buff):
+		t1 = re.sub(r'[DEVASTIL.]*','',buff[:7])
+		t2 = t1 + buff[7:]
+		codec_var = t2.strip().split(" ")[0]
+		if codec_var == "libfdk_aac":
 			if aprio > 4: continue
 			acodec = 'libfdk_aac'
 			param = []
 			aprio  = 4
-		if re.match(r'.*libfaac  .*',buff):
+		if codec_var == "libfaac":
 			if aprio > 3: continue
 			acodec = 'libfaac'
 			param = []
 			aprio  = 3
-		if re.match(r'.{7}aac  .*',buff):
+		if codec_var == "aac":
 			if aprio > 2: continue
 			acodec = 'aac'
 			param = ['-strict','-2']
 			aprio  = 2
-		if re.match(r'.*libvo_aacenc  .*',buff):
+		if codec_var == "libvo_aacenc":
 			if aprio != 0: continue
 			acodec = 'libvo_aacenc'
 			param = []
 			aprio  = 1
-		if re.match(r'.{7}h264  .*',buff):
+		if codec_var == "h264":
 			if vprio != 0: continue
 			vcodec = 'h264'
 			vprio  = 1
-		if re.match(r'.*libx264  .*',buff):
-			if aprio > 2: continue
+		if codec_var == "libx264":
+			if vprio > 2: continue
 			vcodec = 'libx264'
 			vprio  = 2
 		if _webm:
-			if re.match(r'.{7}vp8 .*',buff):
-				print "Fond vp8!"
-				if aprio > 3: continue
+			if codec_var == "vp8":
+				if vprio > 3: continue
 				vcodec = 'vp8'
 				vprio  = 3
-			if re.match(r'.{7}vorbis  .*',buff):
+			if codec_var == "vorbis":
 				if aprio > 5: continue
 				acodec = 'vorbis'
 				aprio  = 5
 				param = ['-strict','experimental']
 			if 0:
-				if re.match(r'.{7}opus  .*',buff):
+				if codec_var == "vp9":
+					if vprio > 4: continue
+					vcodec = 'vp9'
+					vprio  = 4
+				if codec_var == "opus":
 					if aprio > 6: continue
 					acodec = 'opus'
 					aprio  = 6
