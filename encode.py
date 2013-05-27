@@ -17,7 +17,7 @@ _app_encode = 'ffmpeg'
 
 _scale=1
 _scale_h = 800
-_scale_atr = ["-filter:v","scale="+str(_scale_h)+":trunc("+str(_scale_h)+"/dar/2)*2"]
+_scale_atr = ["-filter:v","scale=w="+str(_scale_h)+":h=trunc("+str(_scale_h)+"/dar/2)*2"]
 
 _app_info = 'avprobe'
 _app_encode = 'avconv'
