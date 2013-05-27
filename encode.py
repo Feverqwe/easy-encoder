@@ -17,6 +17,9 @@ _app_encode = 'ffmpeg'
 
 _webm = 0
 
+_scale=0
+_scale_atr = ["-vf","scale=720:ih*720/iw"]
+
 _app_info = 'avprobe'
 _app_encode = 'avconv'
 
@@ -149,12 +152,12 @@ def ffmpeg(s,d,params):
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
-				'-y',
-				'-i',s,
-				'-threads','4',
-				'-preset','slow',
-				'-qmax','48',
-				'-qmin','2'
+		'-y',
+		'-i',s,
+		'-threads','4',
+		'-preset','slow',
+		'-qmax','48',
+		'-qmin','2'
 	]
 	atr.append('-f')
 	if _webm:
@@ -163,6 +166,8 @@ def ffmpeg(s,d,params):
 		atr.append('mp4')
 	atr += _acodec_param
 	atr += params
+	if _scale:
+		atr += _scale_atr
 	atr.append(d_tmp)
 	print "Command line:",' '.join(atr)
 	subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
