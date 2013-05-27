@@ -221,7 +221,7 @@ def select_streams(info):
 		l_bit_rate = g('bit_rate')
 		l_channel = g('channels')
 		l_resol = g('width')+'x'+g('height')
-		if len(g('height')) > 0 && int(g('height')) <= _scale_h:
+		if _scale && len(g('height')) > 0 && int(g('height')) <= _scale_h:
 			_scale = 0
 		l_def = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else ''
 		if len(l_resol) == 1: l_resol = ''
