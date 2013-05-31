@@ -15,17 +15,18 @@ _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-_webm = 0
-
 _app_info = 'avprobe'
 _app_encode = 'avconv'
 
 _out_ext = '.m4v'
-if _webm:
-	_out_ext = '.webm'
 
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
+
+_scale=1
+_scale_w = 1280
+_scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2"]
+
 _is_win = 0
 _is_lin = 0
 if platform.system() == 'Windows':
@@ -119,25 +120,7 @@ def get_aac_codec():
 			if vprio > 2: continue
 			vcodec = 'libx264'
 			vprio  = 2
-		if _webm:
-			if codec_var == "vp8":
-				if vprio > 3: continue
-				vcodec = 'vp8'
-				vprio  = 3
-			if codec_var == "vorbis":
-				if aprio > 5: continue
-				acodec = 'vorbis'
-				aprio  = 5
-				param = ['-strict','experimental']
-			if 0:
-				if codec_var == "vp9":
-					if vprio > 4: continue
-					vcodec = 'vp9'
-					vprio  = 4
-				if codec_var == "opus":
-					if aprio > 6: continue
-					acodec = 'opus'
-					aprio  = 6
+
 	process.wait()
 	_acodec = acodec
 	_acodec_param = param
@@ -149,20 +132,19 @@ def ffmpeg(s,d,params):
 	app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
-				'-y',
-				'-i',s,
-				'-threads','4',
-				'-preset','slow',
-				'-qmax','48',
-				'-qmin','2'
+		'-y',
+		'-i',s,
+		'-threads','4',
+		'-preset','slow',
+		'-qmax','48',
+		'-qmin','2'
 	]
 	atr.append('-f')
-	if _webm:
-		atr.append('webm')
-	else:
-		atr.append('mp4')
+	atr.append('mp4')
 	atr += _acodec_param
 	atr += params
+	if _scale:
+		atr += _scale_atr
 	atr.append(d_tmp)
 	print "Command line:",' '.join(atr)
 	subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
@@ -210,13 +192,10 @@ def get_info(s):
 	return out
 
 def select_streams(info):
-	global _save_param
+	global _save_param, _scale
 	if not 'streams' in info:
 		print('Streams not found!')
-		if _webm:
-			return ['-c','copy','-c:v','vp8','-c:a','opus'];
-		else:
-			return ['-c','copy','-c:v','h264','-c:a','aac'];
+		return ['-c','copy','-c:v','h264','-c:a','aac'];
 	streams = {}
 	v_count = 0
 	a_count = 0
@@ -243,6 +222,9 @@ def select_streams(info):
 		l_bit_rate = g('bit_rate')
 		l_channel = g('channels')
 		l_resol = g('width')+'x'+g('height')
+		tmp_w = g('width')
+		if _scale == 1 and len(tmp_w) > 0 and int(tmp_w) <= _scale_w:
+			_scale = 0
 		l_def = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else ''
 		if len(l_resol) == 1: l_resol = ''
 		streams[l_id] = {
@@ -280,7 +262,7 @@ def select_streams(info):
 			continue
 		param_encode.append('-map')
 		param_encode.append('0:'+indx)
-		if streams[indx]['type'] == 'audio' and ( ( not _webm and streams[indx]['codec'] != 'aac' ) or ( _webm and streams[indx]['codec'] != 'opus' ) ):
+		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_acodec)
 
@@ -292,7 +274,7 @@ def select_streams(info):
 				param_encode.append(streams[indx]['bit_rate'])
 			n += 1
 			continue
-		if streams[indx]['type'] == 'video' and ( ( not _webm and streams[indx]['codec'] != 'h264' ) or ( _webm and streams[indx]['codec'] != 'libvpx' ) ):
+		if streams[indx]['type'] == 'video' and ( streams[indx]['codec'] != 'h264' or _scale == 1 ):
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_vcodec)
 
