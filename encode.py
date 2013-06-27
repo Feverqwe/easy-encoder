@@ -25,7 +25,7 @@ _path = os.path.dirname(os.path.realpath(__file__))
 
 _scale=1
 _scale_w = 1280
-_scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2"]
+_scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2:flags=1"]
 
 _is_win = 0
 _is_lin = 0
@@ -136,6 +136,7 @@ def ffmpeg(s,d,params):
 		'-i',s,
 		'-threads','4',
 		'-preset','slow',
+		'-crf','24',
 		'-qmax','48',
 		'-qmin','2'
 	]
