@@ -23,6 +23,8 @@ _out_ext = '.m4v'
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
 
+_force_stream_select=0;
+
 _scale=1
 _scale_w = 1280
 _scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2:flags=1"]
@@ -243,7 +245,7 @@ def select_streams(info):
 				(', '+l_resol if l_resol else '') + \
 				(', '+l_title if l_title else '')
 	save_query = ''
-	if v_count == 1 and a_count == 1 and o_count == 0:
+	if v_count == 1 and a_count == 1 and o_count == 0 and _force_stream_select == 0:
 		stream_arr = '0 1'
 	elif len(_save_param) == 0:				
 		stream_arr = raw_input('Enter stream numers (spase for split, -1 for all): ')
