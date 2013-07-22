@@ -14,6 +14,7 @@ mkdir ${MES}
 #mingw-get install msys-wget
 #mingw-get install msys-coreutils
 #mingw-get install msys-tar
+#mingw-get install msys-perl
 #mingw-get install mingw32-pthreads-w32
 
 if [ ! -e $MES/yasm*.tar.gz ]; then
