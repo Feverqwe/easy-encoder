@@ -26,7 +26,7 @@ _path = os.path.dirname(os.path.realpath(__file__))
 _force_stream_select=0;
 
 _scale=1
-_scale_w = 1280
+_scale_w = 1366#1280
 _scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2:flags=1"]
 
 _is_win = 0
@@ -164,11 +164,12 @@ def get_info(s):
 	app_path = os.path.join(_path,'bin',app)
 	atr = [ app_path,
 				'"'+s.replace("$","\$").replace("`","\`")+'"',
-				'-of','json','-show_streams', '-show_format'
+				'-of','json', '-show_format','-show_streams'
 	]
 	process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	json_out = ''
 	writeing = 0
+	tmp_err = 0
 	while True:
 		buff = process.stdout.readline().replace('\r','').replace('\n','')
 		if buff == '' and process.poll() != None: 
@@ -178,6 +179,15 @@ def get_info(s):
 		if writeing == 0 and len(buff) > 0 and buff.strip() == '"streams": [':
 			buff = "{" + buff
 			writeing = 1
+		#on error>>
+		if writeing == 0 and len(buff) > 0 and buff.strip() == 'Metadat{  "format" : {':
+			buff = '{ "format" : {'''
+			writeing = 1
+			tmp_err = 1
+		if tmp_err == 1 and writeing == 1 and buff == '  ]}':
+			json_out += buff
+			writeing = 0
+		#<<on error
 		if writeing == 1 and len(buff) > 15 and ( buff[0:15] == 'avprobe version' or buff[0:15] == 'ffprobe version' ):
 			writeing = 0
 		if writeing:
