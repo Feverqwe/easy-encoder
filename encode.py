@@ -26,7 +26,8 @@ _path = os.path.dirname(os.path.realpath(__file__))
 _force_stream_select=0;
 
 _scale=1
-_scale_w = 1366#1280
+_scale_w = 1366
+#1280
 _scale_atr = ["-filter:v","scale=w="+str(_scale_w)+":h=trunc("+str(_scale_w)+"/dar/2)*2:flags=1"]
 
 _is_win = 0
@@ -236,7 +237,7 @@ def select_streams(info):
 		l_channel = g('channels')
 		l_resol = g('width')+'x'+g('height')
 		tmp_w = g('width')
-		if _scale == 1 and len(tmp_w) > 0 and int(tmp_w) <= _scale_w:
+		if _scale == 1 and l_codec != "mjpeg" and len(tmp_w) > 0 and int(tmp_w) > 0 and int(tmp_w) <= _scale_w:
 			_scale = 0
 		l_def = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else ''
 		if len(l_resol) == 1: l_resol = ''
