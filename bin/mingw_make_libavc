@@ -89,3 +89,10 @@ export LDFLAGS="-L${TARGET}/lib"
 export CFLAGS="-I${TARGET}/include"
 # --enable-libvpx
 ./configure --prefix=${TARGET} --enable-runtime-cpudetect --enable-pthreads --arch=x86_64 --disable-shared --enable-static --enable-gpl --enable-libx264 --enable-libmp3lame --enable-nonfree --enable-version3 --enable-encoder=libfaac --enable-libvo-aacenc --enable-libvorbis && make clean && make && make install
+
+cd ${CMPL}
+git clone git://source.ffmpeg.org/ffmpeg.git ffmpeg
+cd ffmpeg
+export LDFLAGS="-L${TARGET}/lib"
+export CFLAGS="-I${TARGET}/include"
+./configure --prefix=${TARGET} --enable-runtime-cpudetect --enable-pthreads --arch=x86_64 --disable-shared --enable-static --enable-gpl --enable-libx264 --enable-libmp3lame --enable-nonfree --enable-version3 --enable-encoder=libfaac --enable-libvo-aacenc --enable-libvorbis && make clean && make && make install
