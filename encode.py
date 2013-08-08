@@ -15,8 +15,8 @@ _vcodec = ''
 _app_info = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-_app_info = 'avprobe'
-_app_encode = 'avconv'
+#_app_info = 'avprobe'
+#_app_encode = 'avconv'
 
 _out_ext = '.m4v'
 
@@ -139,9 +139,7 @@ def ffmpeg(s,d,params):
 		'-i',s,
 		'-threads','4',
 		'-preset','slow',
-		'-crf','24',
-		'-qmax','48',
-		'-qmin','2'
+		'-crf','20',#20 recomend #18 big file
 	]
 	atr.append('-f')
 	atr.append('mp4')
