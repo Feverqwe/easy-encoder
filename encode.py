@@ -139,7 +139,7 @@ def ffmpeg(s,d,params):
 		'-i',s,
 		'-threads','4',
 		'-preset','slow',
-		'-crf','20',#20 recomend #18 big file
+		'-crf','18',#20 recomend #18 big file
 	]
 	atr.append('-f')
 	atr.append('mp4')
