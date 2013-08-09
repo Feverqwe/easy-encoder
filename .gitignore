@@ -5,3 +5,7 @@ bin/avconv
 
 bin/avprobe
 bin/*.exe
+
+bin/ffprobe
+
+bin/ffmpeg
