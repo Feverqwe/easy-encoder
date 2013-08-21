@@ -9,3 +9,5 @@ bin/*.exe
 bin/ffprobe
 
 bin/ffmpeg
+
+.idea/
