@@ -23,7 +23,7 @@ _out_ext = '.m4v'
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
 
-_force_stream_select=0;
+_force_stream_select=0
 
 _scale=1
 _scale_w = 1366
