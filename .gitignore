@@ -9,5 +9,5 @@ bin/*.exe
 bin/ffprobe
 
 bin/ffmpeg
-
+bin/old
 .idea/
