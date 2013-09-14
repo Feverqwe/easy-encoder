@@ -24,6 +24,7 @@ _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
 
 _force_stream_select=0
+_force_audio_encode=0;
 
 _scale=1
 _scale_w = 1366
@@ -274,7 +275,7 @@ def select_streams(info):
 			continue
 		param_encode.append('-map')
 		param_encode.append('0:'+indx)
-		if streams[indx]['type'] == 'audio' and streams[indx]['codec'] != 'aac':
+		if streams[indx]['type'] == 'audio' and (streams[indx]['codec'] != 'aac' or _force_audio_encode == 1):
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_acodec)
 
