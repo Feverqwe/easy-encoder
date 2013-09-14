@@ -24,7 +24,8 @@ _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
 
 _force_stream_select=0
-_force_audio_encode=0;
+_force_audio_encode=0
+_force_video_encode=0
 
 _scale=1
 _scale_w = 1366
@@ -287,7 +288,7 @@ def select_streams(info):
 				param_encode.append(streams[indx]['bit_rate'])
 			n += 1
 			continue
-		if streams[indx]['type'] == 'video' and ( streams[indx]['codec'] != 'h264' or _scale == 1 ):
+		if streams[indx]['type'] == 'video' and ( streams[indx]['codec'] != 'h264' or _scale == 1 or _force_video_encode == 1 ):
 			param_encode.append('-c:'+str(n))
 			param_encode.append(_vcodec)
 
