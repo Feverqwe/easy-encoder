@@ -2,6 +2,8 @@
 MES=/Packages/
 TARGET="/sw"
 CMPL="/compile"
+rm -r ${CMPL}
+rm -r ${TARGET}
 mkdir ${MES}
 mkdir ${TARGET}
 mkdir ${CMPL}
