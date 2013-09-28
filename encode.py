@@ -108,7 +108,7 @@ if len(_input_files) == 0:
     print "Files for converting not found!"
     sys.exit(0)
 
-class encode_file(file):
+class encode_file():
     file = None
     name = None
     ext = None
@@ -364,11 +364,11 @@ class encode_file(file):
 
         self.ffmpeg(atr)
 
-    def __init__(self, file):
+    def __init__(self, filename):
         import os
         self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.ff_mpeg_path = os.path.join(self._path, 'bin', self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
-        self.file = os.path.realpath(file)
+        self.file = os.path.realpath(filename)
         self.folder = os.path.dirname(self.file)
         self.name = os.path.splitext(os.path.basename(self.file))[0]
         self.ext = self.file.split('.')[-1]
@@ -377,7 +377,6 @@ class encode_file(file):
         else:
             self.out_folder = os.path.realpath(_out)
         self.out_path = os.path.join(self.out_folder, self.name + '.' + _out_ext)
-        print self.out_path
         if os.path.exists(self.out_path):
             print "Exists!", self.out_path
         else:
