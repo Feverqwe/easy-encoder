@@ -176,7 +176,6 @@ class encode_file():
 
     def get_stream_list(self, file):
         print "Read file info: "+os.path.basename(file)
-        import subprocess
         atr = [self.ff_probe_path, '-show_format', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
         p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err =  p.communicate()
@@ -367,8 +366,21 @@ class encode_file():
 
         self.ffmpeg(atr)
 
+    def run(self):
+        if os.path.exists(self.out_path):
+            print "Output file exists!", self.out_path
+            rewrite = raw_input('Rewrite file? Enter (y/n): ').lower()
+            if len(rewrite) > 0 and rewrite[0] == 'y':
+                os.remove(self.out_path)
+            else:
+                return;
+        self.get_best_codec()
+        self.get_stream_list(self.file)
+        self.get_sub_files()
+        self.select_streams()
+        print "Dune!", self.name + '.' + _out_ext
+
     def __init__(self, filename):
-        import os
         self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.ff_mpeg_path = os.path.join(self._path, 'bin', self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.file = os.path.realpath(filename)
@@ -380,14 +392,7 @@ class encode_file():
         else:
             self.out_folder = os.path.realpath(_out)
         self.out_path = os.path.join(self.out_folder, self.name + '.' + _out_ext)
-        if os.path.exists(self.out_path):
-            print "Exists!", self.out_path
-        else:
-            self.get_best_codec()
-            self.get_stream_list(self.file)
-            self.get_sub_files()
-            self.select_streams()
-            print "Dune!", self.name + '.' + _out_ext
+        self.run()
 
 
 for file in _input_files:
