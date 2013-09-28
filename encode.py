@@ -162,7 +162,7 @@ def get_aac_codec():
     _vcodec = vcodec
 
 
-def ffmpeg(s, d, params):
+def ffmpeg(s, d, params, sub_imput):
     print '*mpeg: open', s
     d_tmp = d + '.converting' + _out_ext
     app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
@@ -170,7 +170,9 @@ def ffmpeg(s, d, params):
     atr = [app_path,
            '-y',
            '-i', s,
-           '-threads', '4',
+    ]
+    atr += sub_imput
+    atr += ['-threads', '4',
            '-preset', 'slow',
            '-crf', '18', #20 recomend #18 big file
     ]
@@ -181,7 +183,9 @@ def ffmpeg(s, d, params):
     if _scale:
         atr += _scale_atr
     atr.append(d_tmp)
+    print "="*60
     print "Command line:", ' '.join(atr)
+    print "="*60
     subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
     if os.path.getsize(d_tmp) == 0:
         os.remove(d_tmp)
@@ -242,7 +246,7 @@ def select_streams(info):
     global _save_param, _scale
     if not 'streams' in info:
         print('Streams not found!')
-        return ['-c', 'copy', '-c:v', 'h264', '-c:a', 'aac'];
+        return ['-c', 'copy', '-c:v', 'h264', '-c:a', 'aac'], -1;
     streams = {}
     v_count = 0
     a_count = 0
@@ -308,10 +312,11 @@ def select_streams(info):
     param_encode = []
     n = 0
     for indx in stream_arr:
-        if (streams[indx]['codec'] == 'unknown'):
-            continue
         param_encode.append('-map')
         param_encode.append('0:' + indx)
+    for indx in stream_arr:
+        if (streams[indx]['codec'] == 'unknown'):
+            continue
         if streams[indx]['type'] == 'audio' and (streams[indx]['codec'] != 'aac' or _force_audio_encode == 1):
             param_encode.append('-c:' + str(n))
             param_encode.append(_acodec)
@@ -344,22 +349,48 @@ def select_streams(info):
         param_encode.append('copy')
         n += 1
 
-    return param_encode
+    return param_encode, n
 
 
 get_aac_codec()
 
+def get_sub_files(path, name, codec_count):
+    input = []
+    params = []
+    f_num = 1
+    c_num = codec_count
+    for fn in os.listdir(path):
+        if fn[:len(name)] == name and fn.split('.')[-1] == 'srt':
+            add = raw_input('I found "srt" file ( '+fn+' ), add it? (y/n): ').lower()
+            if add != "y":
+                continue
+            input.append('-i')
+            input.append(os.path.join(path, fn))
+            params.append('-map')
+            params.append(str(f_num)+':0')
+            params.append('-c:'+str(c_num))
+            params.append('mov_text')
+            c_num += 1
+            f_num += 1
+    return params, input
+
 for file in _input_files:
     if _auto_out:
         _out = os.path.dirname(file)
-    f_name = os.path.splitext(os.path.basename(file))[0]
-    f_name = os.path.join(_out, f_name)
+    file_path = os.path.dirname(file)
+    file_name = os.path.splitext(os.path.basename(file))[0]
+    f_name = os.path.join(_out, file_name)
     if os.path.exists(f_name + _out_ext):
         print "Exists!", f_name
         continue
     info = get_info(file)
-    params = select_streams(info)
-    ffmpeg(file, f_name, params)
+    params, codec_count = select_streams(info)
+    sub_param = []
+    sub_imput = []
+    if (codec_count >= 0):
+        sub_param, sub_imput = get_sub_files(file_path,file_name, codec_count)
+    params += sub_param
+    ffmpeg(file, f_name, params, sub_imput)
     print "Dune!", f_name
 
 print "All dune!"
