@@ -14,11 +14,10 @@ _acodec_param = ''
 _vcodec = ''
 _app_probe = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
+_out_ext = 'm4v'
 
 #_app_probe = 'avprobe'
 #_app_encode = 'avconv'
-
-_out_ext = '.m4v'
 
 _save_param = []
 _path = os.path.dirname(os.path.realpath(__file__))
@@ -30,6 +29,12 @@ _force_video_encode = 0
 _scale = 1
 _scale_w = 1366
 #1280
+
+_def_attrs = ['-threads', '4',
+                       '-preset', 'slow',
+                       '-crf', '18', #20 recomend #18 big file
+                       '-f', 'mp4'
+                    ]
 
 config = ConfigParser.ConfigParser()
 config_name = 'config.cfg'
@@ -86,7 +91,7 @@ if platform.system() == 'Linux':
 _input_files = sys.argv[1:]
 if len(_input_files) == 0:
     print "Files for converting not found!"
-    _input_files=["\\\\192.168.0.1\\Torrents\\Films\\Generation.Um.2012.BluRay.720p.mkv"]
+    _input_files=["\\\\192.168.0.1\\Torrents\\Serials\\The Big Bang Theory - Season 7\\The.Big.Bang.Theory.S07E01.HDTVRip.720p.mkv"]
     #sys.exit(0)
 if len(_input_files) == 1:
     folder = _input_files[0]
@@ -104,282 +109,12 @@ if len(_input_files) == 0:
     print "Files for converting not found!"
     sys.exit(0)
 
-
-def get_aac_codec():
-    global _acodec
-    global _acodec_param
-    global _vcodec
-    print '*mpeg: get codecs'
-    app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
-    app_path = os.path.join(_path, 'bin', app)
-    atr = [app_path,
-           '-codecs'
-    ]
-    process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    aprio = 0
-    vprio = 0
-    acodec = ''
-    vcodec = ''
-    param = []
-    while True:
-        buff = process.stdout.readline().replace('\r', '').replace('\n', '')
-        if buff == '' and process.poll() != None:
-            break
-        t1 = re.sub(r'[DEVASTIL.]*', '', buff[:7])
-        t2 = t1 + buff[7:]
-        codec_var = t2.strip().split(" ")[0]
-        if codec_var == "libfdk_aac":
-            if aprio > 4: continue
-            acodec = 'libfdk_aac'
-            param = []
-            aprio = 4
-        if codec_var == "libfaac":
-            if aprio > 3: continue
-            acodec = 'libfaac'
-            param = []
-            aprio = 3
-        if codec_var == "aac":
-            if aprio > 2: continue
-            acodec = 'aac'
-            param = ['-strict', '-2']
-            aprio = 2
-        if codec_var == "libvo_aacenc":
-            if aprio != 0: continue
-            acodec = 'libvo_aacenc'
-            param = []
-            aprio = 1
-        if codec_var == "h264":
-            if vprio != 0: continue
-            vcodec = 'h264'
-            vprio = 1
-        if codec_var == "libx264":
-            if vprio > 2: continue
-            vcodec = 'libx264'
-            vprio = 2
-
-    process.wait()
-    _acodec = acodec
-    _acodec_param = param
-    _vcodec = vcodec
-
-
-def ffmpeg(s, d, params, sub_imput):
-    print '*mpeg: open', s
-    d_tmp = d + '.converting' + _out_ext
-    app = _app_encode + ('.exe' if _is_win else '_linux' if _is_lin else '')
-    app_path = os.path.join(_path, 'bin', app)
-    atr = [app_path,
-           '-y',
-           '-i', s,
-    ]
-    atr += sub_imput
-    atr += ['-threads', '4',
-           '-preset', 'slow',
-           '-crf', '18', #20 recomend #18 big file
-    ]
-    atr.append('-f')
-    atr.append('mp4')
-    atr += _acodec_param
-    atr += params
-    if _scale:
-        atr += _scale_atr
-    atr.append(d_tmp)
-    print "="*60
-    print "Command line:", ' '.join(atr)
-    print "="*60
-    subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
-    if os.path.getsize(d_tmp) == 0:
-        os.remove(d_tmp)
-        return 0
-    else:
-        os.rename(d_tmp, d + _out_ext)
-        return 1
-
-
-def get_info(s):
-    print '*probe: open', s
-    app = _app_info + ('.exe' if _is_win else '_linux' if _is_lin else '')
-    app_path = os.path.join(_path, 'bin', app)
-    atr = [app_path,
-           '"' + s.replace("$", "\$").replace("`", "\`") + '"',
-           '-of', 'json', '-show_format', '-show_streams'
-    ]
-    process = subprocess.Popen((' ').join(atr), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    json_out = ''
-    writeing = 0
-    tmp_err = 0
-    while True:
-        buff = process.stdout.readline().replace('\r', '').replace('\n', '')
-        if buff == '' and process.poll() != None:
-            break
-        if writeing == 0 and len(buff) > 0 and buff[0] == '{':
-            writeing = 1
-        if writeing == 0 and len(buff) > 0 and buff.strip() == '"streams": [':
-            buff = "{" + buff
-            writeing = 1
-        #on error>>
-        if writeing == 0 and len(buff) > 0 and buff.strip() == 'Metadat{  "format" : {':
-            buff = '{ "format" : {'''
-            writeing = 1
-            tmp_err = 1
-        if tmp_err == 1 and writeing == 1 and buff == '  ]}':
-            json_out += buff
-            writeing = 0
-        #<<on error
-        if writeing == 1 and len(buff) > 15 and ( buff[0:15] == 'avprobe version' or buff[0:15] == 'ffprobe version' ):
-            writeing = 0
-        if writeing:
-            json_out += buff
-        if writeing and len(buff) > 0 and buff[0] == '}':
-            writeing = 0
-    process.wait()
-    try:
-        out = json.loads(json_out)
-    except Exception:
-        try:
-            out = json.loads(json_out.decode("cp1251"))
-        except Exception:
-            out = json.loads(json_out.decode("utf-8", "ignore"))
-    return out
-
-
-def select_streams(info):
-    global _save_param, _scale
-    if not 'streams' in info:
-        print('Streams not found!')
-        return ['-c', 'copy', '-c:v', 'h264', '-c:a', 'aac'], -1;
-    streams = {}
-    v_count = 0
-    a_count = 0
-    o_count = 0
-    all_arr = []
-    for stream in info['streams']:
-        def g(i, e=''):
-            return str(stream[i]) if i in stream else e
-
-        l_id = g('index', '-1')
-        l_lang = ''
-        l_title = ''
-        if 'tags' in stream:
-            l_lang = stream['tags']['language'] if 'language' in stream['tags'] else ''
-            l_title = stream['tags']['title'] if 'title' in stream['tags'] else '[No title]'
-        l_type = g('codec_type')
-        l_codec = g('codec_name')
-        if l_type == 'video':
-            v_count += 1
-        elif l_type == 'audio':
-            a_count += 1
-        else:
-            o_count += 1
-        l_sample_rate = g('sample_rate')
-        l_bit_rate = g('bit_rate')
-        l_channel = g('channels')
-        l_resol = g('width') + 'x' + g('height')
-        tmp_w = g('width')
-        if _scale == 1 and l_codec != "mjpeg" and len(tmp_w) > 0 and int(tmp_w) > 0 and int(tmp_w) <= _scale_w:
-            _scale = 0
-        l_def = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream[
-            'disposition'] else ''
-        if len(l_resol) == 1: l_resol = ''
-        streams[l_id] = {
-        'type': l_type,
-        'codec': l_codec,
-        'bit_rate': l_bit_rate
-        }
-        all_arr.append(l_id)
-        print 'Stream:', l_id, \
-            ('(' + l_lang + ')' if l_lang != '' else '') + \
-            (', [D]' if l_def else '') + \
-            (', ' + l_bit_rate if l_bit_rate else '') + \
-            (', ' + l_type.capitalize() + ': ' + l_codec) + \
-            (', ch ' + l_channel if l_channel else '') + \
-            (', ' + l_resol if l_resol else '') + \
-            (', ' + l_title if l_title else '')
-    save_query = ''
-    if v_count == 1 and a_count == 1 and o_count == 0 and _force_stream_select == 0:
-        stream_arr = '0 1'
-    elif len(_save_param) == 0:
-        stream_arr = raw_input('Enter stream numbers (spase for split, -1 for all): ')
-        if len(_input_files) > 1:
-            save_query = raw_input('Use for all? Enter (y/n): ').lower()
-    else:
-        stream_arr = _save_param
-    if len(save_query) > 0 and save_query[0] == 'y':
-        _save_param = stream_arr
-    if stream_arr == "-1":
-        stream_arr = all_arr
-    else:
-        stream_arr = stream_arr.split(' ')
-    param_encode = []
-    n = 0
-    for indx in stream_arr:
-        param_encode.append('-map')
-        param_encode.append('0:' + indx)
-    for indx in stream_arr:
-        if (streams[indx]['codec'] == 'unknown'):
-            continue
-        if streams[indx]['type'] == 'audio' and (streams[indx]['codec'] != 'aac' or _force_audio_encode == 1):
-            param_encode.append('-c:' + str(n))
-            param_encode.append(_acodec)
-
-            #param_encode.append('-q:'+str(n))
-            #param_encode.append('1')
-
-            if len(streams[indx]['bit_rate']) > 0:
-                param_encode.append('-b:' + str(n))
-                param_encode.append(streams[indx]['bit_rate'])
-            n += 1
-            continue
-        if streams[indx]['type'] == 'video' and (
-                    streams[indx]['codec'] != 'h264' or _scale == 1 or _force_video_encode == 1 ):
-            param_encode.append('-c:' + str(n))
-            param_encode.append(_vcodec)
-
-            #param_encode.append('-q:'+str(n))
-            #param_encode.append('1')
-
-            n += 1
-            continue
-        if streams[indx]['type'] == 'subtitle' and streams[indx]['codec'] == 'subrip':
-            param_encode.append('-c:' + str(n))
-            param_encode.append('mov_text')
-            n += 1
-            continue
-
-        param_encode.append('-c:' + str(n))
-        param_encode.append('copy')
-        n += 1
-
-    return param_encode, n
-
-
-#get_aac_codec()
-
-def get_sub_files(path, name, codec_count):
-    input = []
-    params = []
-    f_num = 1
-    c_num = codec_count
-    for fn in os.listdir(path):
-        if fn[:len(name)] == name and fn.split('.')[-1] == 'srt':
-            add = raw_input('I found "srt" file ( '+fn+' ), add it? (y/n): ').lower()
-            if add != "y":
-                continue
-            input.append('-i')
-            input.append(os.path.join(path, fn))
-            params.append('-map')
-            params.append(str(f_num)+':0')
-            params.append('-c:'+str(c_num))
-            params.append('mov_text')
-            c_num += 1
-            f_num += 1
-    return params, input
-
 class encode_file(file):
     file = None
     name = None
     ext = None
     folder = None
+    out_ext = 'm4v'
     out_folder = None
     out_path = None
     ff_probe = _app_probe
@@ -390,11 +125,63 @@ class encode_file(file):
     ff_input_list = []
     _path = os.path.dirname(os.path.realpath(__file__))
     streams = []
+    video_codec = None
+    audio_codec = None
+    subtitle_codec = None
+
+    def get_best_codec(self):
+        atr = [self.ff_mpeg_path,
+               '-codecs'
+        ]
+        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err =  p.communicate()
+        #print "==========output=========="
+        #print out
+        #if err:
+        #    print "========= error ========"
+        #    print err
+        for line in out.split("\n"):
+            line = re.sub(r"\s+",' ',line).strip().split(' ')
+            if len(line) < 2:
+                continue
+            codec = line[1]
+            a_l = 0;
+            v_l = 0;
+            s_l = 0;
+            if self.out_ext == 'm4v' or self.out_ext == 'mp4':
+                if codec == 'libfdk_aac':
+                    if a_l > 4: continue
+                    self.audio_codec = codec
+                    a_l = 4
+                if codec == 'libfaac':
+                    if a_l > 3: continue
+                    self.audio_codec = codec
+                    a_l = 3
+                if codec == 'aac':
+                    if a_l > 2: continue
+                    self.audio_codec = codec
+                    a_l = 2
+                if codec == 'libvo_aacenc':
+                    if a_l > 1: continue
+                    self.audio_codec = codec
+                    a_l = 1
+                if codec == 'h264':
+                    if v_l > 1: continue
+                    self.video_codec = codec
+                    v_l = 1
+                if codec == 'libx264':
+                    if v_l > 2: continue
+                    self.video_codec = codec
+                    v_l = 2
+                if codec == 'mov_text':
+                    if s_l > 1: continue
+                    self.subtitle_codec = codec
+                    s_l = 1
 
     def get_stream_list(self, file):
         import subprocess
-        cmnd = [self.ff_probe_path, '-show_format', '-pretty', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
-        p = subprocess.Popen(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        atr = [self.ff_probe_path, '-show_format', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
+        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err =  p.communicate()
         #print "==========output=========="
         #print out
@@ -418,16 +205,165 @@ class encode_file(file):
             item['channels'] = stream['channels'] if 'channels' in stream else None
             item['width'] = stream['width'] if 'width' in stream else None
             item['height'] = stream['height'] if 'height' in stream else None
+            item['resol'] = None
+            if item['width'] is not None and item['height'] is not None:
+                item['resol'] = str(item['width'])+'x'+str(item['height'])
             item['default'] = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else None
             item['index'] = stream['index'] if 'index' in stream else None
+            item['b'] = None
+            item['strict'] = None
+            item['scale'] = None
+            if item['codec'] is None or item['codec'] == 'unknown':
+                continue
+            if item['index'] is None:
+                continue
+            #video
+            item['c'] = 'copy'
+            if self.out_ext == 'm4v' or self.out_ext == 'mp4':
+                if item['type'] == 'video':
+                    if self.video_codec is None:
+                        continue
+                    if item['codec'] != 'h264' or _force_video_encode:
+                        item['c'] = self.video_codec
+                    if _scale and item['codec'] != "mjpeg" and item['width'] > _scale_w:
+                        item['scale'] = 1
+                elif item['type'] == 'audio':
+                    if self.audio_codec is None:
+                        continue
+                    if item['codec'] != 'aac' or _force_audio_encode:
+                        item['c'] = self.audio_codec
+                        item['strict'] = 1
+                    if item['bit_rate'] is not None:
+                        item['b'] = item['bit_rate']
+                elif item['type'] == 'subtitle':
+                    if self.subtitle_codec is None:
+                        continue
+                    if item['codec'] != 'mov_text':
+                        item['c'] = self.subtitle_codec
+            #
             strem_list['streams'].append(item)
         strem_list['file'] = os.path.realpath(file)
-        self.streams.append(strem_list)
+        if len(strem_list['streams']) > 0:
+            self.streams.append(strem_list)
 
     def get_sub_files(self):
+        file_list = []
         for fn in os.listdir(self.folder):
             if fn[:len(self.name)] == self.name and fn.split('.')[-1] == 'srt':
-                get_stream_list( os.path.realpath( os.path.join( self.folder, fn ) ) )
+                file_list.append(os.path.realpath( os.path.join( self.folder, fn ) ) )
+        file_list.sort()
+        for f in file_list:
+            self.get_stream_list( f )
+
+    def ffmpeg(self, atr):
+        d_tmp = os.path.join(self.out_folder, self.name+ '.converting.' + self.out_ext) 
+        atr.append(d_tmp)
+        print "="*60
+        print "Command line:", ' '.join(atr)
+        print "="*60
+        subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
+        #out, err =  p.communicate()
+        if os.path.getsize(d_tmp) == 0:
+            os.remove(d_tmp)
+            return 0
+        #if err:
+        #    return 0
+        os.rename(d_tmp, self.out_path)
+        return 1
+
+    def select_streams(self):
+        global _save_param
+        _no_stream_mode = 0;
+        streams = []
+        file_num = 0
+        for f in self.streams:
+            if file_num == 0 and len(f['streams']) == 0:
+                _no_stream_mode = 1
+            for stream in f['streams']:
+                streams.append([stream,f['file']])
+            file_num += 1
+
+        if _no_stream_mode:
+            self.ffmpeg(['-y','-i',self.file] + _def_attrs + ['-c', 'copy', '-c:v', self.video_codec, '-c:a', self.audio_codec, '-c:s', self.subtitle_codec])
+            return
+
+        save_query = ''
+        num = 0
+        l_f = ''
+        v_c = 0
+        a_c = 0
+        s_c = 0
+        all_array = []
+        for s in streams:
+            stream = s[0]
+            if l_f != s[1]:
+                print "File: "+os.path.basename(s[1])
+                l_f = s[1]
+            if stream['type'] == 'video':
+                v_c+=1
+            if stream['type'] == 'audio':
+                a_c+=1
+            if stream['type'] == 'subtitle':
+                s_c+=1
+            print 'Stream:', num, \
+                ('(' + stream['language'] + ')' if stream['language'] is not None else '') + \
+                (', [D]' if stream['default'] is not None else '') + \
+                (', ' + stream['bit_rate'] if stream['bit_rate'] is not None else '') + \
+                (', ' + stream['type'].capitalize() + ': ' + stream['codec']) + \
+                (', ch ' + str(stream['channels']) if stream['channels'] is not None else '') + \
+                (', ' + stream['resol'] if stream['resol'] is not None else '') + \
+                (', ' + stream['title'] if stream['title'] is not None else '')
+            all_array.append(num)
+            num += 1
+        if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
+            stream_arr = '0 1'
+        elif len(_save_param) == 0:
+            stream_arr = raw_input('Enter stream numbers (spase for split, -1 for all): ')
+            if len(_input_files) > 1:
+                save_query = raw_input('Use for all? Enter (y/n): ').lower()
+            if stream_arr == '-1':
+                stream_arr = all_array
+            else:
+                stream_arr = stream_arr.split(' ')
+            if len(save_query) > 0 and save_query[0] == 'y':
+                _save_param = stream_arr
+        else:
+            stream_arr = _save_param
+        input_ = []
+        params = []
+        maps = []
+        fn = ''
+        fnum = -1
+        snum = 0
+        for item in stream_arr:
+            st = streams[int(item)]
+            it = st[0]
+            if st[1] != fn:
+                fn = st[1]
+                input_ += ['-i',fn]
+                fnum += 1
+            maps += [ '-map', str(fnum)+':'+str(it['index']) ]
+            params += [ '-c:'+str(snum), it['c'] ]
+            if it['strict'] is not None:
+                params += [ '-strict', '-2' ]
+            if it['b'] is not None:
+                params += [ '-b:'+str(snum),it['b'] ]
+            if it['scale'] is not None:
+                params += _scale_atr
+            snum += 1
+                
+
+        atr = []
+        atr.append(self.ff_mpeg_path)
+        atr.append('-y')
+
+        atr += input_
+
+        atr+=_def_attrs
+        atr += maps
+        atr += params
+
+        self.ffmpeg(atr)
 
     def __init__(self, file):
         import os
@@ -441,18 +377,16 @@ class encode_file(file):
             self.out_folder = self.folder
         else:
             self.out_folder = os.path.realpath(_out)
-        self.out_path = os.path.join(self.out_folder, self.name + _out_ext)
+        self.out_path = os.path.join(self.out_folder, self.name + '.' + _out_ext)
         print self.out_path
         if os.path.exists(self.out_path):
             print "Exists!", self.out_path
         else:
+            self.get_best_codec()
             self.get_stream_list(self.file)
             self.get_sub_files()
-            print self.streams
-            #select_streams()
-            #get_sub_files()
-            #ffmpeg()
-            #print "Dune!", f_name
+            self.select_streams()
+            print "Dune!", self.name + '.' + _out_ext
 
 
 for file in _input_files:
