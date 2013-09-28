@@ -91,8 +91,7 @@ if platform.system() == 'Linux':
 _input_files = sys.argv[1:]
 if len(_input_files) == 0:
     print "Files for converting not found!"
-    _input_files=["\\\\192.168.0.1\\Torrents\\Serials\\The Big Bang Theory - Season 7\\The.Big.Bang.Theory.S07E01.HDTVRip.720p.mkv"]
-    #sys.exit(0)
+    sys.exit(0)
 if len(_input_files) == 1:
     folder = _input_files[0]
     if os.path.isdir(folder):
