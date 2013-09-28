@@ -12,10 +12,10 @@ import re
 _acodec = ''
 _acodec_param = ''
 _vcodec = ''
-_app_info = 'ffprobe' #.exe _linux
+_app_probe = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-#_app_info = 'avprobe'
+#_app_probe = 'avprobe'
 #_app_encode = 'avconv'
 
 _out_ext = '.m4v'
@@ -86,7 +86,8 @@ if platform.system() == 'Linux':
 _input_files = sys.argv[1:]
 if len(_input_files) == 0:
     print "Files for converting not found!"
-    sys.exit(0)
+    _input_files=["\\\\192.168.0.1\\Torrents\\Films\\Generation.Um.2012.BluRay.720p.mkv"]
+    #sys.exit(0)
 if len(_input_files) == 1:
     folder = _input_files[0]
     if os.path.isdir(folder):
@@ -352,7 +353,7 @@ def select_streams(info):
     return param_encode, n
 
 
-get_aac_codec()
+#get_aac_codec()
 
 def get_sub_files(path, name, codec_count):
     input = []
@@ -374,24 +375,88 @@ def get_sub_files(path, name, codec_count):
             f_num += 1
     return params, input
 
+class encode_file(file):
+    file = None
+    name = None
+    ext = None
+    folder = None
+    out_folder = None
+    out_path = None
+    ff_probe = _app_probe
+    ff_mpeg = _app_encode
+    ff_mpeg_path = None
+    ff_probe_path = None
+    ff_stream_list = []
+    ff_input_list = []
+    _path = os.path.dirname(os.path.realpath(__file__))
+    streams = []
+
+    def get_stream_list(self, file):
+        import subprocess
+        cmnd = [self.ff_probe_path, '-show_format', '-pretty', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
+        p = subprocess.Popen(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err =  p.communicate()
+        #print "==========output=========="
+        #print out
+        #if err:
+        #    print "========= error ========"
+        #    print err
+        probe = json.loads(out)
+        tmp_strem_list = []
+        strem_list = {}
+        strem_list['streams'] = []
+        if 'streams' in probe:
+            tmp_strem_list = probe['streams']
+        for stream in tmp_strem_list:
+            item = {}
+            item['language'] = stream['tags']['language'] if 'tags' in stream and 'language' in stream['tags'] else None
+            item['title'] = stream['tags']['title'] if 'tags' in stream and 'title' in stream['tags'] else None
+            item['type'] = stream['codec_type'] if 'codec_type' in stream else None
+            item['codec'] = stream['codec_name'] if 'codec_name' in stream else None
+            item['sample_rate'] = stream['sample_rate'] if 'sample_rate' in stream else None
+            item['bit_rate'] = stream['bit_rate'] if 'bit_rate' in stream else None
+            item['channels'] = stream['channels'] if 'channels' in stream else None
+            item['width'] = stream['width'] if 'width' in stream else None
+            item['height'] = stream['height'] if 'height' in stream else None
+            item['default'] = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else None
+            item['index'] = stream['index'] if 'index' in stream else None
+            strem_list['streams'].append(item)
+        strem_list['file'] = os.path.realpath(file)
+        self.streams.append(strem_list)
+
+    def get_sub_files(self):
+        for fn in os.listdir(self.folder):
+            if fn[:len(self.name)] == self.name and fn.split('.')[-1] == 'srt':
+                get_stream_list( os.path.realpath( os.path.join( self.folder, fn ) ) )
+
+    def __init__(self, file):
+        import os
+        self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
+        self.ff_mpeg_path = os.path.join(self._path, 'bin', self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
+        self.file = os.path.realpath(file)
+        self.folder = os.path.dirname(self.file)
+        self.name = os.path.splitext(os.path.basename(self.file))[0]
+        self.ext = self.file.split('.')[-1]
+        if _auto_out:
+            self.out_folder = self.folder
+        else:
+            self.out_folder = os.path.realpath(_out)
+        self.out_path = os.path.join(self.out_folder, self.name + _out_ext)
+        print self.out_path
+        if os.path.exists(self.out_path):
+            print "Exists!", self.out_path
+        else:
+            self.get_stream_list(self.file)
+            self.get_sub_files()
+            print self.streams
+            #select_streams()
+            #get_sub_files()
+            #ffmpeg()
+            #print "Dune!", f_name
+
+
 for file in _input_files:
-    if _auto_out:
-        _out = os.path.dirname(file)
-    file_path = os.path.dirname(file)
-    file_name = os.path.splitext(os.path.basename(file))[0]
-    f_name = os.path.join(_out, file_name)
-    if os.path.exists(f_name + _out_ext):
-        print "Exists!", f_name
-        continue
-    info = get_info(file)
-    params, codec_count = select_streams(info)
-    sub_param = []
-    sub_imput = []
-    if (codec_count >= 0):
-        sub_param, sub_imput = get_sub_files(file_path,file_name, codec_count)
-    params += sub_param
-    ffmpeg(file, f_name, params, sub_imput)
-    print "Dune!", f_name
+    encode_file(file)
 
 print "All dune!"
 for file in _input_files:
