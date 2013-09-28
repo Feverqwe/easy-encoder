@@ -33,7 +33,6 @@ _scale_w = 1366
 _def_attrs = ['-threads', '4',
                        '-preset', 'slow',
                        '-crf', '18', #20 recomend #18 big file
-                       '-f', 'mp4'
                     ]
 
 config = ConfigParser.ConfigParser()
@@ -72,8 +71,6 @@ try:
     _out_ext = config.get('Main', 'out_extension')
 except:
     pass
-
-_scale_atr = ["-filter:v", "scale=w=" + str(_scale_w) + ":h=trunc(" + str(_scale_w) + "/dar/2)*2:flags=1"]
 
 _auto_out = 0
 if len(_out) == 0:
@@ -178,6 +175,7 @@ class encode_file():
                     s_l = 1
 
     def get_stream_list(self, file):
+        print "Read file info: "+os.path.basename(file)
         import subprocess
         atr = [self.ff_probe_path, '-show_format', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
         p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -189,61 +187,74 @@ class encode_file():
         #    print err
         probe = json.loads(out)
         tmp_strem_list = []
-        strem_list = {}
-        strem_list['streams'] = []
+        strem_list = {'streams':[],'file':None}
         if 'streams' in probe:
             tmp_strem_list = probe['streams']
         for stream in tmp_strem_list:
-            item = {}
-            item['language'] = stream['tags']['language'] if 'tags' in stream and 'language' in stream['tags'] else None
-            item['title'] = stream['tags']['title'] if 'tags' in stream and 'title' in stream['tags'] else None
-            item['type'] = stream['codec_type'] if 'codec_type' in stream else None
-            item['codec'] = stream['codec_name'] if 'codec_name' in stream else None
-            item['sample_rate'] = stream['sample_rate'] if 'sample_rate' in stream else None
-            item['bit_rate'] = stream['bit_rate'] if 'bit_rate' in stream else None
-            item['channels'] = stream['channels'] if 'channels' in stream else None
-            item['width'] = stream['width'] if 'width' in stream else None
-            item['height'] = stream['height'] if 'height' in stream else None
-            item['resol'] = None
-            if item['width'] is not None and item['height'] is not None:
-                item['resol'] = str(item['width'])+'x'+str(item['height'])
-            item['default'] = stream['disposition']['default'] if 'disposition' in stream and 'default' in stream['disposition'] else None
-            item['index'] = stream['index'] if 'index' in stream else None
-            item['b'] = None
-            item['strict'] = None
-            item['scale'] = None
-            if item['codec'] is None or item['codec'] == 'unknown':
+            item = stream
+            language = stream['tags']['language'] if 'tags' in stream and 'language' in stream['tags'] else ''
+            default = '[D]' if 'disposition' in stream and 'default' in stream['disposition'] else ''
+            bit_rate = str(stream['bit_rate']) if 'bit_rate' in stream else ''
+            stream_type = stream['codec_type'] if 'codec_type' in stream else ''
+            stream_codec = stream['codec_name'] if 'codec_name' in stream else ''
+            channels = str(stream['channels']) if 'channels' in stream else ''
+            resolution = ''
+            if 'width' in item and 'height' in item:
+                resolution = str(item['width'])+'x'+str(item['height'])
+            title = stream['tags']['title'] if 'tags' in stream and 'title' in stream['tags'] else ''
+            filename = stream['tags']['filename'] if 'tags' in stream and 'filename' in stream['tags'] else ''
+            mimetype = stream['tags']['mimetype'] if 'tags' in stream and 'mimetype' in stream['tags'] else ''
+
+            item['desc'] = ''
+            if len(language) > 0:
+                item['desc'] += '('+language+')'
+            if len(default) > 0:
+                item['desc'] += default
+            if len(bit_rate) > 0:
+                item['desc'] += ', '+bit_rate
+            if len(stream_type) > 0 and len(stream_codec) > 0:
+                item['desc'] += ', '+stream_type.capitalize() +': '+stream_codec
+            if len(channels) > 0:
+                item['desc'] += ', ch'+channels
+            if len(resolution) > 0:
+                item['desc'] += ', '+resolution
+            if len(title) > 0:
+                item['desc'] += ', '+title
+            if len(filename) > 0:
+                item['desc'] += ', attach: '+filename
+            if len(mimetype) > 0:
+                item['desc'] += ' ('+mimetype+')'
+
+
+            if len(stream_codec) == 0:
+                print "Warning! Unknown codec in stream! Skiped!\n\tStream: "+str(item['index'])+' '+item['desc']
                 continue
-            if item['index'] is None:
-                continue
-            #video
-            item['c'] = 'copy'
-            if self.out_ext == 'm4v' or self.out_ext == 'mp4':
-                if item['type'] == 'video':
-                    if self.video_codec is None:
-                        continue
-                    if item['codec'] != 'h264' or _force_video_encode:
-                        item['c'] = self.video_codec
-                    if _scale and item['codec'] != "mjpeg" and item['width'] > _scale_w:
-                        item['scale'] = 1
-                elif item['type'] == 'audio':
-                    if self.audio_codec is None:
-                        continue
-                    if item['codec'] != 'aac' or _force_audio_encode:
-                        item['c'] = self.audio_codec
-                        item['strict'] = 1
-                    if item['bit_rate'] is not None:
-                        item['b'] = item['bit_rate']
-                elif item['type'] == 'subtitle':
-                    if self.subtitle_codec is None:
-                        continue
-                    if item['codec'] != 'mov_text':
-                        item['c'] = self.subtitle_codec
-            #
+
+            item['encode_params'] =['-c:%stream_num%','copy']
+
+            if (self.out_ext == 'm4v' or self.out_ext == 'mp4'):
+                if item['codec_type'] == 'video':
+                    if item['codec_name'] != 'h264' or _force_video_encode:
+                        item['encode_params'] = ['-c:%stream_num%',self.video_codec]
+
+                    if _scale and item['codec_name'] != "mjpeg" and item['width'] > _scale_w:
+                        item['encode_add_scaling'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_w) + ":h=trunc(" + str(_scale_w) + "/dar/2)*2:flags=1"]
+
+                elif item['codec_type'] == 'audio':
+                    if item['codec_name'] != 'aac' or _force_audio_encode:
+                        item['encode_params'] = ['-c:%stream_num%',self.audio_codec]
+                        if self.audio_codec == 'aac':
+                            item['encode_params'] = ['-strict','-2'] + item['encode_params']
+                    if 'bit_rate' in item:
+                        item['encode_params'] += ['-b:%stream_num%',item['bit_rate']]
+
+                elif item['codec_type'] == 'subtitle':
+                    if item['codec_name'] != 'mov_text':
+                        item['encode_params'] = ['-c:%stream_num%',self.subtitle_codec]
+
             strem_list['streams'].append(item)
         strem_list['file'] = os.path.realpath(file)
-        if len(strem_list['streams']) > 0:
-            self.streams.append(strem_list)
+        self.streams.append(strem_list)
 
     def get_sub_files(self):
         file_list = []
@@ -298,20 +309,13 @@ class encode_file():
             if l_f != s[1]:
                 print "File: "+os.path.basename(s[1])
                 l_f = s[1]
-            if stream['type'] == 'video':
+            if stream['codec_type'] == 'video':
                 v_c+=1
-            if stream['type'] == 'audio':
+            if stream['codec_type'] == 'audio':
                 a_c+=1
-            if stream['type'] == 'subtitle':
+            if stream['codec_type'] == 'subtitle':
                 s_c+=1
-            print 'Stream:', num, \
-                ('(' + stream['language'] + ')' if stream['language'] is not None else '') + \
-                (', [D]' if stream['default'] is not None else '') + \
-                (', ' + stream['bit_rate'] if stream['bit_rate'] is not None else '') + \
-                (', ' + stream['type'].capitalize() + ': ' + stream['codec']) + \
-                (', ch ' + str(stream['channels']) if stream['channels'] is not None else '') + \
-                (', ' + stream['resol'] if stream['resol'] is not None else '') + \
-                (', ' + stream['title'] if stream['title'] is not None else '')
+            print 'Stream:', num, stream['desc']
             all_array.append(num)
             num += 1
         if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
@@ -332,25 +336,24 @@ class encode_file():
         params = []
         maps = []
         fn = ''
-        fnum = -1
-        snum = 0
-        for item in stream_arr:
-            st = streams[int(item)]
-            it = st[0]
-            if st[1] != fn:
-                fn = st[1]
+        file_num = -1
+        stream_num = 0
+        for num in stream_arr:
+            item = streams[int(num)]
+            stream = item[0]
+            if item[1] != fn:
+                fn = item[1]
                 input_ += ['-i',fn]
-                fnum += 1
-            maps += [ '-map', str(fnum)+':'+str(it['index']) ]
-            params += [ '-c:'+str(snum), it['c'] ]
-            if it['strict'] is not None:
-                params += [ '-strict', '-2' ]
-            if it['b'] is not None:
-                params += [ '-b:'+str(snum),it['b'] ]
-            if it['scale'] is not None:
-                params += _scale_atr
-            snum += 1
-                
+                file_num += 1
+            maps += [ '-map', str(file_num)+':'+str(stream['index']) ]
+            stream_params = []
+            for param in stream['encode_params']:
+                if type(param) == str:
+                    stream_params.append(param.replace('%stream_num%',str(stream_num)))
+                else:
+                    stream_params.append(param)
+            params += stream_params
+            stream_num += 1
 
         atr = []
         atr.append(self.ff_mpeg_path)
@@ -358,7 +361,7 @@ class encode_file():
 
         atr += input_
 
-        atr+=_def_attrs
+        atr +=_def_attrs
         atr += maps
         atr += params
 
