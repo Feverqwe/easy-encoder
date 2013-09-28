@@ -110,7 +110,7 @@ class encode_file():
     name = None
     ext = None
     folder = None
-    out_ext = 'm4v'
+    out_ext = None
     out_folder = None
     out_path = None
     ff_probe = _app_probe
@@ -378,7 +378,7 @@ class encode_file():
         self.get_stream_list(self.file)
         self.get_sub_files()
         self.select_streams()
-        print "Dune!", self.name + '.' + _out_ext
+        print "Dune!", self.name + '.' + self.out_ext
 
     def __init__(self, filename):
         self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
@@ -391,7 +391,8 @@ class encode_file():
             self.out_folder = self.folder
         else:
             self.out_folder = os.path.realpath(_out)
-        self.out_path = os.path.join(self.out_folder, self.name + '.' + _out_ext)
+        self.out_ext = _out_ext
+        self.out_path = os.path.join(self.out_folder, self.name + '.' + self.out_ext)
         self.run()
 
 
