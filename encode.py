@@ -199,12 +199,12 @@ class encode_file:
 
             if stream['codec_type'] == 'video':
                 if self.out_ext in ['m4v','mp4','mkv']:
-                    stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-qp', '18','-aq', '100'] #crf replace to qp!
+                    stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-qp', '18'] #crf 18 replace to qp 20!
                     if need_scale:
                         stream['encode_params'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_width) + ":h=trunc(" + str(_scale_width) + "/dar/2)*2:flags=1"]
             elif stream['codec_type'] == 'audio':
                 if self.out_ext in ['m4v','mp4','mkv']:
-                    stream['encode_params'] = ['-c:%stream_num%',self.audio_codec]
+                    stream['encode_params'] = ['-c:%stream_num%',self.audio_codec,'-aq', '100']
                     if 'bit_rate' in stream:
                         stream['encode_params'] += ['-b:%stream_num%',stream['bit_rate']]
                     if 'channels' in stream:
