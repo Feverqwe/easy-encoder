@@ -9,31 +9,18 @@ import ConfigParser
 import codecs
 import re
 
-_acodec = ''
-_acodec_param = ''
-_vcodec = ''
 _app_probe = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
-_out_ext = 'm4v'
+
 
 #_app_probe = 'avprobe'
 #_app_encode = 'avconv'
-
+_save_rewrite = ''
 _save_param = []
+
 _path = os.path.dirname(os.path.realpath(__file__))
 
-_force_stream_select = 0
-_force_audio_encode = 0
-_force_video_encode = 0
-
-_scale = 1
-_scale_w = 1366
-#1280
-
-_def_attrs = ['-threads', '4',
-                       '-preset', 'slow',
-                       '-crf', '18', #20 recomend #18 big file
-                    ]
+_def_attrs = ['-threads', '4']
 
 config = ConfigParser.ConfigParser()
 config_name = 'config.cfg'
@@ -46,31 +33,31 @@ else:
 try:
     _out = config.get('Main', 'output')
 except:
-    pass
+    _out = ''
 try:
     _force_stream_select = config.getint('Main', 'force_stream_select')
 except:
-    pass
+    _force_stream_select = 0
 try:
     _force_audio_encode = config.getint('Main', 'force_audio_encode')
 except:
-    pass
+    _force_audio_encode = 0
 try:
     _force_video_encode = config.getint('Main', 'force_video_encode')
 except:
-    pass
+    _force_video_encode = 0
 try:
     _scale = config.getint('Main', 'enable_scale')
 except:
-    pass
+    _scale = 1
 try:
-    _scale_w = config.getint('Main', 'scale_width')
+    _scale_width = config.getint('Main', 'scale_width')
 except:
-    pass
+    _scale_width = 1366
 try:
     _out_ext = config.get('Main', 'out_extension')
 except:
-    pass
+    _out_ext = 'm4v'
 
 _auto_out = 0
 if len(_out) == 0:
@@ -144,7 +131,7 @@ class encode_file():
             a_l = 0;
             v_l = 0;
             s_l = 0;
-            if self.out_ext == 'm4v' or self.out_ext == 'mp4':
+            if self.out_ext == 'm4v' or self.out_ext == 'mp4' or self.out_ext == 'mkv':
                 if codec == 'libfdk_aac':
                     if a_l > 4: continue
                     self.audio_codec = codec
@@ -169,10 +156,56 @@ class encode_file():
                     if v_l > 2: continue
                     self.video_codec = codec
                     v_l = 2
+                if codec == 'subtitle' and self.out_ext == 'mkv':
+                    if s_l > 2: continue
+                    self.subtitle_codec = codec
+                    s_l = 2
                 if codec == 'mov_text':
                     if s_l > 1: continue
                     self.subtitle_codec = codec
                     s_l = 1
+
+    def get_encode_params(self, stream):
+            force = 0
+            need_scale = 0
+            default = ['-c:%stream_num%','copy']
+            if stream['codec_name'] in ['mjpeg']:
+                return default
+            if _force_video_encode and stream['codec_type'] == 'video':
+                force = 1
+            if _scale and stream['codec_type'] == 'video' and stream['width'] > _scale_width:
+                force = 1
+                need_scale = 1
+            if _force_audio_encode and stream['codec_type'] == 'audio':
+                force = 1
+            if force == 0 and self.out_ext in ['m4v','mp4'] and stream['codec_name'] in ['h264', 'aac']:
+                return default
+            if force == 0 and self.out_ext in ['mkv'] and stream['codec_name'] in ['h264', 'aac', 'ac3']:
+                return default
+            if self.out_ext in ['m4v','mp4'] and stream['codec_name'] in ['mov_text']:
+                return default
+            if self.out_ext in ['mkv'] and stream['codec_name'] in ['mov_text', 'subrip']:
+                return default
+
+            stream['encode_params'] = default
+
+            if stream['codec_type'] == 'video':
+                if self.out_ext in ['m4v','mp4','mkv']:
+                    stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-crf', '18']
+                    if need_scale:
+                        stream['encode_params'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_width) + ":h=trunc(" + str(_scale_width) + "/dar/2)*2:flags=1"]
+            elif stream['codec_type'] == 'audio':
+                if self.out_ext in ['m4v','mp4','mkv']:
+                    stream['encode_params'] = ['-c:%stream_num%',self.audio_codec]
+                    if 'bit_rate' in stream:
+                        stream['encode_params'] += ['-b:%stream_num%',stream['bit_rate']]
+                    if self.audio_codec == 'aac':
+                        stream['encode_params'] += ['-strict','-2']
+            elif stream['codec_type'] == 'subtitle':
+                if self.out_ext in ['m4v','mp4','mkv']:
+                    stream['encode_params'] = ['-c:%stream_num%',self.subtitle_codec]
+
+            return stream['encode_params']
 
     def get_stream_list(self, file):
         print "Read file info: "+os.path.basename(file)
@@ -224,34 +257,13 @@ class encode_file():
             if len(mimetype) > 0:
                 item['desc'] += ' ('+mimetype+')'
 
-
             if len(stream_codec) == 0:
                 print "Warning! Unknown codec in stream! Skiped!\n\tStream: "+str(item['index'])+' '+item['desc']
                 continue
 
-            item['encode_params'] =['-c:%stream_num%','copy']
-
-            if (self.out_ext == 'm4v' or self.out_ext == 'mp4'):
-                if item['codec_type'] == 'video':
-                    if item['codec_name'] != 'h264' or _force_video_encode:
-                        item['encode_params'] = ['-c:%stream_num%',self.video_codec]
-
-                    if _scale and item['codec_name'] != "mjpeg" and item['width'] > _scale_w:
-                        item['encode_add_scaling'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_w) + ":h=trunc(" + str(_scale_w) + "/dar/2)*2:flags=1"]
-
-                elif item['codec_type'] == 'audio':
-                    if item['codec_name'] != 'aac' or _force_audio_encode:
-                        item['encode_params'] = ['-c:%stream_num%',self.audio_codec]
-                        if self.audio_codec == 'aac':
-                            item['encode_params'] = ['-strict','-2'] + item['encode_params']
-                    if 'bit_rate' in item:
-                        item['encode_params'] += ['-b:%stream_num%',item['bit_rate']]
-
-                elif item['codec_type'] == 'subtitle':
-                    if item['codec_name'] != 'mov_text':
-                        item['encode_params'] = ['-c:%stream_num%',self.subtitle_codec]
-
+            item['encode_params'] =self.get_encode_params(stream)
             strem_list['streams'].append(item)
+
         strem_list['file'] = os.path.realpath(file)
         self.streams.append(strem_list)
 
@@ -287,6 +299,7 @@ class encode_file():
         file_num = 0
         for f in self.streams:
             if file_num == 0 and len(f['streams']) == 0:
+                print "In file ("+f['file']+") don't found any streams! Go in to NO_STREAM_MODE!"
                 _no_stream_mode = 1
             for stream in f['streams']:
                 streams.append([stream,f['file']])
@@ -367,9 +380,18 @@ class encode_file():
         self.ffmpeg(atr)
 
     def run(self):
+        global _save_rewrite
+        save_rewrite = ''
         if os.path.exists(self.out_path):
             print "Output file exists!", self.out_path
-            rewrite = raw_input('Rewrite file? Enter (y/n): ').lower()
+            if len(_save_rewrite) == 0:
+                rewrite = raw_input('Rewrite file? Enter (y/n): ').lower()
+                if len(_input_files) > 1:
+                    save_rewrite = raw_input('Use for all? Enter (y/n): ').lower()
+                if len(save_rewrite) > 0 and save_rewrite[0] == 'y':
+                    _save_rewrite = rewrite
+            else:
+                rewrite = _save_rewrite
             if len(rewrite) > 0 and rewrite[0] == 'y':
                 os.remove(self.out_path)
             else:
