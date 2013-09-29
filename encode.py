@@ -208,7 +208,7 @@ class encode_file:
                     if 'bit_rate' in stream:
                         stream['encode_params'] += ['-b:%stream_num%',stream['bit_rate']]
                     if 'channels' in stream:
-                        stream['encode_params'] += ['-ac:%stream_num%',stream['channels']]
+                        stream['encode_params'] += ['-ac:%stream_num%',str(stream['channels'])]
                     if 'sample_rate' in stream:
                         stream['encode_params'] += ['-ar:%stream_num%',stream['sample_rate']]
                     if self.audio_codec == 'aac':
@@ -342,7 +342,7 @@ class encode_file:
             all_array.append(num)
             num += 1
         if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
-            stream_arr = '0 1'
+            stream_arr = [0, 1]
         elif len(_save_param) == 0:
             stream_arr = raw_input('Enter stream numbers (spase for split, -1 for all): ')
             if len(_input_files) > 1:
