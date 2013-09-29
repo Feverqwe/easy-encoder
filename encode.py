@@ -124,6 +124,11 @@ class encode_file():
         #    print "========= error ========"
         #    print err
         for line in out.split("\n"):
+            if len(line) < 3:
+                continue
+            is_encode = 1 if line[2] == 'E' else 0
+            if is_encode == 0:
+                continue
             line = re.sub(r"\s+",' ',line).strip().split(' ')
             if len(line) < 2:
                 continue
