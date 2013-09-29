@@ -92,7 +92,7 @@ if len(_input_files) == 0:
     print "Files for converting not found!"
     sys.exit(0)
 
-class encode_file():
+class encode_file:
     file = None
     name = None
     ext = None
