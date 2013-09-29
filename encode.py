@@ -207,8 +207,8 @@ class encode_file:
                     stream['encode_params'] = ['-c:%stream_num%',self.audio_codec] #,'-aq', '100'
                     if 'bit_rate' in stream:
                         stream['encode_params'] += ['-b:%stream_num%',stream['bit_rate']]
-                    if 'channels' in stream:
-                        stream['encode_params'] += ['-ac:%stream_num%',str(stream['channels'])]
+                    #if 'channels' in stream:
+                    #    stream['encode_params'] += ['-ac:%stream_num%',str(stream['channels'])]
                     if 'sample_rate' in stream:
                         stream['encode_params'] += ['-ar:%stream_num%',stream['sample_rate']]
                     if self.audio_codec == 'aac':
