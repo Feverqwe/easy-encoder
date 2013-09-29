@@ -156,7 +156,7 @@ class encode_file():
                     if v_l > 2: continue
                     self.video_codec = codec
                     v_l = 2
-                if codec == 'subtitle' and self.out_ext == 'mkv':
+                if codec == 'subrip' and self.out_ext == 'mkv':
                     if s_l > 2: continue
                     self.subtitle_codec = codec
                     s_l = 2
