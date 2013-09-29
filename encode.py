@@ -58,6 +58,10 @@ try:
     _out_ext = config.get('Main', 'out_extension')
 except:
     _out_ext = 'm4v'
+try:
+    _out_prefix = config.get('Main', 'out_prefix')
+except:
+    _out_prefix = ''
 
 _auto_out = 0
 if len(_out) == 0:
@@ -95,7 +99,6 @@ if len(_input_files) == 0:
 class encode_file:
     file = None
     name = None
-    ext = None
     folder = None
     out_ext = None
     out_folder = None
@@ -104,13 +107,13 @@ class encode_file:
     ff_mpeg = _app_encode
     ff_mpeg_path = None
     ff_probe_path = None
-    ff_stream_list = []
-    ff_input_list = []
     _path = os.path.dirname(os.path.realpath(__file__))
     streams = []
     video_codec = None
     audio_codec = None
     subtitle_codec = None
+    out_prefix = None
+    ff_out_tmp_name = None
 
     def get_best_codec(self):
         atr = [self.ff_mpeg_path,
@@ -204,6 +207,10 @@ class encode_file:
                     stream['encode_params'] = ['-c:%stream_num%',self.audio_codec]
                     if 'bit_rate' in stream:
                         stream['encode_params'] += ['-b:%stream_num%',stream['bit_rate']]
+                    if 'channels' in stream:
+                        stream['encode_params'] += ['-ac:%stream_num%',stream['channels']]
+                    if 'sample_rate' in stream:
+                        stream['encode_params'] += ['-ar:%stream_num%',stream['sample_rate']]
                     if self.audio_codec == 'aac':
                         stream['encode_params'] += ['-strict','-2']
             elif stream['codec_type'] == 'subtitle':
@@ -282,19 +289,18 @@ class encode_file:
             self.get_stream_list( f )
 
     def ffmpeg(self, atr):
-        d_tmp = os.path.join(self.out_folder, self.name+ '.converting.' + self.out_ext) 
-        atr.append(d_tmp)
+        atr.append(self.ff_out_tmp_name)
         print "="*60
         print "Command line:", ' '.join(atr)
         print "="*60
         subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
         #out, err =  p.communicate()
-        if os.path.getsize(d_tmp) == 0:
-            os.remove(d_tmp)
+        if os.path.getsize(self.ff_out_tmp_name) == 0:
+            os.remove(self.ff_out_tmp_name)
             return 0
         #if err:
         #    return 0
-        os.rename(d_tmp, self.out_path)
+        os.rename(self.ff_out_tmp_name, self.out_path)
         return 1
 
     def select_streams(self):
@@ -408,18 +414,23 @@ class encode_file:
         print "Dune!", self.name + '.' + self.out_ext
 
     def __init__(self, filename):
+        self.streams = []
+        self.video_codec = None
+        self.audio_codec = None
+        self.subtitle_codec = None
+        self.out_prefix = _out_prefix
         self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.ff_mpeg_path = os.path.join(self._path, 'bin', self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.file = os.path.realpath(filename)
         self.folder = os.path.dirname(self.file)
         self.name = os.path.splitext(os.path.basename(self.file))[0]
-        self.ext = self.file.split('.')[-1]
         if _auto_out:
             self.out_folder = self.folder
         else:
             self.out_folder = os.path.realpath(_out)
         self.out_ext = _out_ext
-        self.out_path = os.path.join(self.out_folder, self.name + '.' + self.out_ext)
+        self.ff_out_tmp_name = os.path.join(self.out_folder, self.out_prefix + self.name+ '.converting.' + self.out_ext);
+        self.out_path = os.path.join(self.out_folder, self.out_prefix + self.name + '.' + self.out_ext)
         self.run()
 
 
