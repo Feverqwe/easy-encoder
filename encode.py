@@ -177,7 +177,7 @@ class encode_file:
             force = 0
             need_scale = 0
             default = ['-c:%stream_num%','copy']
-            if stream['codec_name'] in ['mjpeg']:
+            if stream['codec_name'] in ['mjpeg','png']:
                 return default
             if _force_video_encode and stream['codec_type'] == 'video':
                 force = 1
