@@ -89,7 +89,7 @@ if len(_input_files) == 1:
             if os.path.isdir(full_path):
                 continue
             ex = file.split('.')[-1]
-            if ex in ['avi', 'mkv', 'ts', 'wma', 'mp4']:
+            if ex in ['avi', 'mkv', 'ts', 'wma', 'wmv', 'mp4']:
                 _input_files.append(full_path)
     print "Loaded files:", '\n'.join(_input_files)
 if len(_input_files) == 0:
