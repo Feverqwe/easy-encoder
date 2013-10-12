@@ -229,6 +229,8 @@ class encode_file:
         #if err:
         #    print "========= error ========"
         #    print err
+        if _is_win:
+            out = out.decode("cp1251",errors="replace").encode("utf-8",errors="replace")
         probe = json.loads(out)
         tmp_strem_list = []
         strem_list = {'streams':[],'file':None}
@@ -338,7 +340,7 @@ class encode_file:
                 a_c+=1
             if stream['codec_type'] == 'subtitle':
                 s_c+=1
-            print 'Stream:', num, stream['desc']
+            print 'Stream:', num, stream['desc'].decode("cp1251",errors="replace").encode("utf-8",errors="replace")
             all_array.append(num)
             num += 1
         if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
