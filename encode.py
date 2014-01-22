@@ -199,7 +199,7 @@ class encode_file:
 
             if stream['codec_type'] == 'video':
                 if self.out_ext in ['m4v','mp4','mkv']:
-                    stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-crf', '18','-maxrate','8M'] #crf 18 replace to qp 20!
+                    stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-crf', '18','-maxrate','10M'] #crf 18 replace to qp 20!
                     if need_scale:
                         stream['encode_params'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_width) + ":h=trunc(" + str(_scale_width) + "/dar/2)*2:flags=1"]
             elif stream['codec_type'] == 'audio':
@@ -340,7 +340,11 @@ class encode_file:
                 a_c+=1
             if stream['codec_type'] == 'subtitle':
                 s_c+=1
-            print 'Stream:', num, stream['desc'].decode("cp1251",errors="replace").encode("utf-8",errors="replace")
+            try:
+                print 'Stream:', num, stream['desc'].decode("cp1251",errors="replace").encode("utf-8",errors="replace")
+            except:
+                import urllib
+                print 'Stream:', num, "<Bad name>"
             all_array.append(num)
             num += 1
         if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
