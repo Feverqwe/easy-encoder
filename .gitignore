@@ -11,3 +11,4 @@ bin/ffprobe
 bin/ffmpeg
 bin/old
 .idea/
+bin2/*

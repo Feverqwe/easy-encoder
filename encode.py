@@ -9,12 +9,14 @@ import ConfigParser
 import codecs
 import re
 
+_bin_path = 'bin'
 _app_probe = 'ffprobe' #.exe _linux
 _app_encode = 'ffmpeg'
 
-
+#_bin_path = 'bin2'
 #_app_probe = 'avprobe'
 #_app_encode = 'avconv'
+
 _save_rewrite = ''
 _save_param = []
 
@@ -129,7 +131,9 @@ class encode_file:
         for line in out.split("\n"):
             if len(line) < 3:
                 continue
-            is_encode = 1 if line[2] == 'E' else 0
+            if line[0] == ' ':
+                line = line[1:]
+            is_encode = 1 if line[1] == 'E' else 0
             if is_encode == 0:
                 continue
             line = re.sub(r"\s+",' ',line).strip().split(' ')
@@ -425,8 +429,8 @@ class encode_file:
         self.audio_codec = None
         self.subtitle_codec = None
         self.out_prefix = _out_prefix
-        self.ff_probe_path = os.path.join(self._path, 'bin', self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
-        self.ff_mpeg_path = os.path.join(self._path, 'bin', self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
+        self.ff_probe_path = os.path.join(self._path, _bin_path, self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
+        self.ff_mpeg_path = os.path.join(self._path, _bin_path, self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
         self.file = os.path.realpath(filename)
         self.folder = os.path.dirname(self.file)
         self.name = os.path.splitext(os.path.basename(self.file))[0]
