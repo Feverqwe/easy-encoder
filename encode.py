@@ -429,8 +429,8 @@ class encode_file:
         self.audio_codec = None
         self.subtitle_codec = None
         self.out_prefix = _out_prefix
-        self.ff_probe_path = os.path.join(self._path, _bin_path, self.ff_probe) + ('.exe' if _is_win else '_linux' if _is_lin else '')
-        self.ff_mpeg_path = os.path.join(self._path, _bin_path, self.ff_mpeg) + ('.exe' if _is_win else '_linux' if _is_lin else '')
+        self.ff_probe_path = os.path.join(self._path, _bin_path, self.ff_probe) + ('.exe' if _is_win else '')
+        self.ff_mpeg_path = os.path.join(self._path, _bin_path, self.ff_mpeg) + ('.exe' if _is_win else '')
         self.file = os.path.realpath(filename)
         self.folder = os.path.dirname(self.file)
         self.name = os.path.splitext(os.path.basename(self.file))[0]
