@@ -78,6 +78,10 @@ if platform.system() == 'Windows':
 if platform.system() == 'Linux':
     _is_lin = 1
 
+if _is_lin:
+    reload(sys)
+    sys.setdefaultencoding("UTF-8")
+
 _input_files = sys.argv[1:]
 if len(_input_files) == 0:
     print "Files for converting not found!"
