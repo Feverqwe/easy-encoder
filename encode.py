@@ -96,7 +96,8 @@ class encode_file:
         atr = [self.ff_mpeg_path,
                '-codecs'
         ]
-        out = subprocess.getoutput(atr)
+        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = p.communicate()[0]
         #out, err =  p.communicate()
 
         #print "==========output=========="
