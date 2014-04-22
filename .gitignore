@@ -1,14 +1,3 @@
-
 .DS_Store
-
-bin/avconv
-
-bin/avprobe
-bin/*.exe
-
-bin/ffprobe
-
-bin/ffmpeg
-bin/old
-.idea/
-bin2/*
+bin/
+config.cfg
