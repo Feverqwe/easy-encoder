@@ -202,13 +202,10 @@ class encode_file:
     def get_stream_list(self, file):
         print ( "Read file info: "+os.path.basename(file) )
         atr = [self.ff_probe_path, '-show_format', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
-        out = subprocess.getoutput(atr)
-        #print "==========output=========="
-        #print out
-        #if err:
-        #    print "========= error ========"
-        #    print err
-        probe = json.loads(out)
+        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = p.communicate()[0]
+
+        probe = json.loads(out.decode("utf-8"))
         tmp_strem_list = []
         strem_list = {'streams':[],'file':None}
         if 'streams' in probe:
