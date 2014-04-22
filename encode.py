@@ -438,8 +438,6 @@ class encode_file:
             self.out_folder = self.folder
         else:
             self.out_folder = os.path.realpath(_out)
-        if _is_lin:
-            self.out_folder = self.out_folder.decode('utf-8')
         self.out_ext = _out_ext
         self.ff_out_tmp_name = os.path.join(self.out_folder, self.out_prefix + self.name+ '.converting.' + self.out_ext);
         self.out_path = os.path.join(self.out_folder, self.out_prefix + self.name + '.' + self.out_ext)
