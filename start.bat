@@ -1,4 +1,4 @@
 c:
 cd "C:\Users\Anton\Documents\GitHub\easy-encoder"
-encode.py %*
+c:\python27\python.exe encode.py %*
 pause
