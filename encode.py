@@ -1,91 +1,61 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 import sys
 import os
 import subprocess
 import json
 import platform
-import ConfigParser
 import codecs
 import re
 
-_bin_path = 'bin'
-_app_probe = 'ffprobe' #.exe _linux
-_app_encode = 'ffmpeg'
+_config = {
+    "ffmpeg_path": os.path.join("bin","ffmpeg"),
+    "ffprobe_path": os.path.join("bin","ffprobe"),
+    "path": os.path.dirname(os.path.realpath(__file__)),
+    "output": "",
+    "force_stream_select": 0,
+    "force_audio_encode": 0,
+    "force_video_encode": 0,
+    "enable_video_scale": 1,
+    "video_scale_width": 1366,
+    "out_extension": "mp4",
+    "out_prefix": "",
+    "additional_ffmpeg_attr": ["-threads", "4"],
+    "search_file_ext": ["avi", "mkv", "ts", "wma", "wmv", "mp4"]
+}
 
-#_bin_path = 'bin2'
-#_app_probe = 'avprobe'
-#_app_encode = 'avconv'
+config_filename = 'config.json'
+config_path = os.path.join(_config['path'], config_filename)
+if not os.path.exists(config_path):
+    print ("Config file (" + config_filename + ") not found!")
+    sys.exit(0)
+else:
+    with open(config_path) as json_file:
+        config_file = json.load(json_file)
+        for key in config_file:
+            _config[key] = config_file[key]
+
 
 _save_rewrite = ''
 _save_param = []
 
-_path = os.path.dirname(os.path.realpath(__file__))
-
-_def_attrs = ['-threads', '4']
-
-config = ConfigParser.ConfigParser()
-config_name = 'config.cfg'
-if not os.path.exists(os.path.join(_path, config_name)):
-    print "Config file (" + config_name + ") not found!"
-    sys.exit(0)
-else:
-    config.readfp(codecs.open(os.path.join(_path, config_name), 'r', 'utf-8'))
-
-try:
-    _out = config.get('Main', 'output')
-except:
-    _out = ''
-try:
-    _force_stream_select = config.getint('Main', 'force_stream_select')
-except:
-    _force_stream_select = 0
-try:
-    _force_audio_encode = config.getint('Main', 'force_audio_encode')
-except:
-    _force_audio_encode = 0
-try:
-    _force_video_encode = config.getint('Main', 'force_video_encode')
-except:
-    _force_video_encode = 0
-try:
-    _scale = config.getint('Main', 'enable_scale')
-except:
-    _scale = 1
-try:
-    _scale_width = config.getint('Main', 'scale_width')
-except:
-    _scale_width = 1366
-try:
-    _out_ext = config.get('Main', 'out_extension')
-except:
-    _out_ext = 'm4v'
-try:
-    _out_prefix = config.get('Main', 'out_prefix')
-except:
-    _out_prefix = ''
-
-_auto_out = 0
-if len(_out) == 0:
-    _auto_out = 1
+_auto_output_path = 0
+if len(_config['output']) == 0:
+    _auto_output_path = 1
 
 _is_win = 0
 _is_lin = 0
 if platform.system() == 'Windows':
     _is_win = 1
-    reload(sys)
-    sys.setdefaultencoding("cp1251")
 if platform.system() == 'Linux':
     _is_lin = 1
 
-if _is_lin:
-    reload(sys)
-    sys.setdefaultencoding("UTF-8")
-
 _input_files = sys.argv[1:]
-if len(_input_files) == 0:
-    print "Files for converting not found!"
-    sys.exit(0)
+
+print (sys.argv)
+
+
+
 if len(_input_files) == 1:
     folder = _input_files[0]
     if os.path.isdir(folder):
@@ -95,11 +65,12 @@ if len(_input_files) == 1:
             if os.path.isdir(full_path):
                 continue
             ex = file.split('.')[-1]
-            if ex in ['avi', 'mkv', 'ts', 'wma', 'wmv', 'mp4']:
+            if ex in _config['search_file_ext']:
                 _input_files.append(full_path)
-    print "Loaded files:", '\n'.join(_input_files)
+    print ("Loaded files:", '\n'.join(_input_files))
+
 if len(_input_files) == 0:
-    print "Files for converting not found!"
+    print ( "Files for converting not found!" )
     sys.exit(0)
 
 class encode_file:
@@ -109,8 +80,8 @@ class encode_file:
     out_ext = None
     out_folder = None
     out_path = None
-    ff_probe = _app_probe
-    ff_mpeg = _app_encode
+    ff_probe = _config['ffprobe_path']
+    ff_mpeg = _config['ffmpeg_path']
     ff_mpeg_path = None
     ff_probe_path = None
     _path = os.path.dirname(os.path.realpath(__file__))
@@ -125,8 +96,9 @@ class encode_file:
         atr = [self.ff_mpeg_path,
                '-codecs'
         ]
-        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err =  p.communicate()
+        out = subprocess.getoutput(atr)
+        #out, err =  p.communicate()
+
         #print "==========output=========="
         #print out
         #if err:
@@ -144,9 +116,9 @@ class encode_file:
             if len(line) < 2:
                 continue
             codec = line[1]
-            a_l = 0;
-            v_l = 0;
-            s_l = 0;
+            a_l = 0
+            v_l = 0
+            s_l = 0
             if self.out_ext == 'm4v' or self.out_ext == 'mp4' or self.out_ext == 'mkv':
                 if codec == 'libfdk_aac':
                     if a_l > 4: continue
@@ -187,12 +159,12 @@ class encode_file:
             default = ['-c:%stream_num%','copy']
             if stream['codec_name'] in ['mjpeg','png']:
                 return default
-            if _force_video_encode and stream['codec_type'] == 'video':
+            if _config['force_video_encode'] and stream['codec_type'] == 'video':
                 force = 1
-            if _scale and stream['codec_type'] == 'video' and stream['width'] > _scale_width:
+            if _config['enable_video_scale'] and stream['codec_type'] == 'video' and stream['width'] > _config['video_scale_width']:
                 force = 1
                 need_scale = 1
-            if _force_audio_encode and stream['codec_type'] == 'audio':
+            if _config['force_audio_encode'] and stream['codec_type'] == 'audio':
                 force = 1
             if force == 0 and self.out_ext in ['m4v','mp4'] and stream['codec_name'] in ['h264', 'aac']:
                 return default
@@ -209,7 +181,7 @@ class encode_file:
                 if self.out_ext in ['m4v','mp4','mkv']:
                     stream['encode_params'] = ['-c:%stream_num%',self.video_codec,'-preset', 'slow','-crf', '18','-maxrate','10M'] #crf 18 replace to qp 20!
                     if need_scale:
-                        stream['encode_params'] += ["-filter:%stream_num%", "scale=w=" + str(_scale_width) + ":h=trunc(" + str(_scale_width) + "/dar/2)*2:flags=1"]
+                        stream['encode_params'] += ["-filter:%stream_num%", "scale=w=" + str(_config['video_scale_width']) + ":h=trunc(" + str(_config['video_scale_width']) + "/dar/2)*2:flags=1"]
             elif stream['codec_type'] == 'audio':
                 if self.out_ext in ['m4v','mp4','mkv']:
                     stream['encode_params'] = ['-c:%stream_num%',self.audio_codec] #,'-aq', '100'
@@ -228,18 +200,12 @@ class encode_file:
             return stream['encode_params']
 
     def get_stream_list(self, file):
-        print "Read file info: "+os.path.basename(file)
+        print ( "Read file info: "+os.path.basename(file) )
         atr = [self.ff_probe_path, '-show_format', '-of', 'json', '-show_streams', '-loglevel', 'quiet', file]
-        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err =  p.communicate()
-        #print "==========output=========="
-        #print out
-        #if err:
-        #    print "========= error ========"
-        #    print err
-        if _is_win:
-            out = out.decode("cp1251",errors="replace").encode("utf-8",errors="replace")
-        probe = json.loads(out)
+        p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = p.communicate()[0]
+
+        probe = json.loads(out.decode("utf-8"))
         tmp_strem_list = []
         strem_list = {'streams':[],'file':None}
         if 'streams' in probe:
@@ -280,7 +246,7 @@ class encode_file:
                 item['desc'] += ' ('+mimetype+')'
 
             if len(stream_codec) == 0:
-                print "Warning! Unknown codec in stream! Skiped!\n\tStream: "+str(item['index'])+' '+item['desc']
+                print ( "Warning! Unknown codec in stream! Skiped!\n\tStream: "+str(item['index'])+' '+item['desc'] )
                 continue
 
             item['encode_params'] =self.get_encode_params(stream)
@@ -300,10 +266,10 @@ class encode_file:
 
     def ffmpeg(self, atr):
         atr.append(self.ff_out_tmp_name)
-        print "="*60
-        print "Command line:", ' '.join(atr)
-        print "="*60
-        subprocess.Popen(atr, stdout=subprocess.PIPE).communicate()[0]
+        print ( "="*60 )
+        print ( "Command line:", ' '.join(atr) )
+        print ( "="*60 )
+        subprocess.call(atr)
         #out, err =  p.communicate()
         if os.path.getsize(self.ff_out_tmp_name) == 0:
             os.remove(self.ff_out_tmp_name)
@@ -315,19 +281,19 @@ class encode_file:
 
     def select_streams(self):
         global _save_param
-        _no_stream_mode = 0;
+        _no_stream_mode = 0
         streams = []
         file_num = 0
         for f in self.streams:
             if file_num == 0 and len(f['streams']) == 0:
-                print "In file ("+f['file']+") don't found any streams! Go in to NO_STREAM_MODE!"
+                print ( "In file ("+f['file']+") don't found any streams! Go in to NO_STREAM_MODE!" )
                 _no_stream_mode = 1
             for stream in f['streams']:
                 streams.append([stream,f['file']])
             file_num += 1
 
         if _no_stream_mode:
-            self.ffmpeg(['-y','-i',self.file] + _def_attrs + ['-c', 'copy', '-c:v', self.video_codec, '-c:a', self.audio_codec, '-c:s', self.subtitle_codec])
+            self.ffmpeg(['-y','-i',self.file] + _config['additional_ffmpeg_attr'] + ['-c', 'copy', '-c:v', self.video_codec, '-c:a', self.audio_codec, '-c:s', self.subtitle_codec])
             return
 
         save_query = ''
@@ -340,7 +306,7 @@ class encode_file:
         for s in streams:
             stream = s[0]
             if l_f != s[1]:
-                print "File: "+os.path.basename(s[1])
+                print ( "File: "+os.path.basename(s[1]) )
                 l_f = s[1]
             if stream['codec_type'] == 'video':
                 v_c+=1
@@ -349,18 +315,18 @@ class encode_file:
             if stream['codec_type'] == 'subtitle':
                 s_c+=1
             try:
-                print 'Stream:', num, stream['desc'].decode("cp1251",errors="replace").encode("utf-8",errors="replace")
+                print ( 'Stream:', num, stream['desc'] )
             except:
                 import urllib
-                print 'Stream:', num, "<Bad name>"
+                print ( 'Stream:', num, "<Bad name>" )
             all_array.append(num)
             num += 1
-        if v_c == 1 and a_c == 1 and s_c == 0 and _force_stream_select == 0:
+        if v_c == 1 and a_c == 1 and s_c == 0 and _config['force_stream_select'] == 0:
             stream_arr = [0, 1]
         elif len(_save_param) == 0:
-            stream_arr = raw_input('Enter stream numbers (spase for split, -1 for all): ')
+            stream_arr = input('Enter stream numbers (spase for split, -1 for all): ')
             if len(_input_files) > 1:
-                save_query = raw_input('Use for all? Enter (y/n): ').lower()
+                save_query = input('Use for all? Enter (y/n): ').lower()
             if stream_arr == '-1':
                 stream_arr = all_array
             else:
@@ -398,7 +364,7 @@ class encode_file:
 
         atr += input_
 
-        atr +=_def_attrs
+        atr +=_config['additional_ffmpeg_attr']
         atr += maps
         atr += params
 
@@ -408,11 +374,11 @@ class encode_file:
         global _save_rewrite
         save_rewrite = ''
         if os.path.exists(self.out_path):
-            print "Output file exists!", self.out_path
+            print ( "Output file exists!", self.out_path )
             if len(_save_rewrite) == 0:
-                rewrite = raw_input('Rewrite file? Enter (y/n): ').lower()
+                rewrite = input('Rewrite file? Enter (y/n): ').lower()
                 if len(_input_files) > 1:
-                    save_rewrite = raw_input('Use for all? Enter (y/n): ').lower()
+                    save_rewrite = input('Use for all? Enter (y/n): ').lower()
                 if len(save_rewrite) > 0 and save_rewrite[0] == 'y':
                     _save_rewrite = rewrite
             else:
@@ -420,29 +386,29 @@ class encode_file:
             if len(rewrite) > 0 and rewrite[0] == 'y':
                 os.remove(self.out_path)
             else:
-                return;
+                return
         self.get_best_codec()
         self.get_stream_list(self.file)
         self.get_sub_files()
         self.select_streams()
-        print "Dune!", self.name + '.' + self.out_ext
+        print ( "Dune!", self.name + '.' + self.out_ext )
 
     def __init__(self, filename):
         self.streams = []
         self.video_codec = None
         self.audio_codec = None
         self.subtitle_codec = None
-        self.out_prefix = _out_prefix
-        self.ff_probe_path = os.path.join(self._path, _bin_path, self.ff_probe) + ('.exe' if _is_win else '')
-        self.ff_mpeg_path = os.path.join(self._path, _bin_path, self.ff_mpeg) + ('.exe' if _is_win else '')
+        self.out_prefix = _config['out_prefix']
+        self.ff_probe_path = os.path.join(self._path, self.ff_probe) + ('.exe' if _is_win else '')
+        self.ff_mpeg_path = os.path.join(self._path, self.ff_mpeg) + ('.exe' if _is_win else '')
         self.file = os.path.realpath(filename)
         self.folder = os.path.dirname(self.file)
         self.name = os.path.splitext(os.path.basename(self.file))[0]
-        if _auto_out:
+        if _auto_output_path:
             self.out_folder = self.folder
         else:
-            self.out_folder = os.path.realpath(_out)
-        self.out_ext = _out_ext
+            self.out_folder = os.path.realpath(_config['output'])
+        self.out_ext = _config['out_extension']
         self.ff_out_tmp_name = os.path.join(self.out_folder, self.out_prefix + self.name+ '.converting.' + self.out_ext);
         self.out_path = os.path.join(self.out_folder, self.out_prefix + self.name + '.' + self.out_ext)
         self.run()
@@ -451,7 +417,7 @@ class encode_file:
 for file in _input_files:
     encode_file(file)
 
-print "All dune!"
+print ( "All dune!" )
 for file in _input_files:
-    print "From folder:", os.path.dirname(file)
-    print "File:", os.path.basename(file)
+    print ( "From folder:", os.path.dirname(file) )
+    print ( "File:", os.path.basename(file) )
