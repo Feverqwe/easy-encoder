@@ -98,6 +98,7 @@ class encode_file:
         ]
         p = subprocess.Popen(atr, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = p.communicate()[0]
+        out = out.decode("utf-8")
         #out, err =  p.communicate()
 
         #print "==========output=========="
@@ -105,7 +106,7 @@ class encode_file:
         #if err:
         #    print "========= error ========"
         #    print err
-        for line in out.decode("utf-8").split("\n"):
+        for line in out.split("\n"):
             if len(line) < 3:
                 continue
             if line[0] == ' ':
