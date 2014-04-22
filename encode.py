@@ -105,7 +105,7 @@ class encode_file:
         #if err:
         #    print "========= error ========"
         #    print err
-        for line in out.split("\n"):
+        for line in out.decode("utf-8").split("\n"):
             if len(line) < 3:
                 continue
             if line[0] == ' ':
