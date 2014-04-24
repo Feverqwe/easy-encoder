@@ -268,7 +268,7 @@ class encode_file:
         print ( "="*60 )
         print ( "Command line:", ' '.join(atr) )
         print ( "="*60 )
-        if _config.mute == 1:
+        if _config["mute"] == 1:
             subprocess.call(atr, stdout=(open(os.path.devnull, 'w')), stderr=subprocess.STDOUT)
         else:
             subprocess.call(atr)
