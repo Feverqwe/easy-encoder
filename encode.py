@@ -52,10 +52,6 @@ if platform.system() == 'Linux':
 
 _input_files = sys.argv[1:]
 
-print (sys.argv)
-
-
-
 if len(_input_files) == 1:
     folder = _input_files[0]
     if os.path.isdir(folder):
