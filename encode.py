@@ -13,6 +13,7 @@ _config = {
     "ffprobe_path": os.path.join("bin","ffprobe"),
     "path": os.path.dirname(os.path.realpath(__file__)),
     "output": "",
+    "mute": 0,
     "force_stream_select": 0,
     "force_audio_encode": 0,
     "force_video_encode": 0,
@@ -267,7 +268,10 @@ class encode_file:
         print ( "="*60 )
         print ( "Command line:", ' '.join(atr) )
         print ( "="*60 )
-        subprocess.call(atr)
+        if _config.mute == 1:
+            subprocess.call(atr, stdout=(open(os.path.devnull, 'w')), stderr=subprocess.STDOUT)
+        else:
+            subprocess.call(atr)
         #out, err =  p.communicate()
         if os.path.getsize(self.ff_out_tmp_name) == 0:
             os.remove(self.ff_out_tmp_name)
