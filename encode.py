@@ -22,7 +22,7 @@ _config = {
     "out_extension": "mp4",
     "out_prefix": "",
     "additional_ffmpeg_attr": ["-threads", "4"],
-    "search_file_ext": ["avi", "mkv", "ts", "wma", "wmv", "mp4"]
+    "search_file_ext": ["avi", "mkv", "ts", "wma", "wmv", "mp4", "flv"]
 }
 
 config_filename = 'config.json'
